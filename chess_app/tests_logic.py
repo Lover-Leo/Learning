@@ -90,6 +90,45 @@ print("终局原因: game_over=%s checkmate=%s stalemate=%s insufficient=%s clai
       % (b.is_game_over(), b.is_checkmate(), b.is_stalemate(),
          b.is_insufficient_material(), b.can_claim_draw()))
 
+# 10. 胜率映射锚点: +100≈65%, +300≈85%, 0=50%, -100≈35%
+wp0 = ChessAI.win_pct(0)
+wp100 = ChessAI.win_pct(100)
+wp300 = ChessAI.win_pct(300)
+check("胜率映射 0 分=50%", abs(wp0 - 50) < 0.1)
+check("胜率映射 +100≈64%(锚点65)", 62 <= wp100 <= 67)
+check("胜率映射 +300≈85%", 83 <= wp300 <= 87)
+check("胜率映射 -100 与 +100 对称", abs(ChessAI.win_pct(-100) - (100 - wp100)) < 0.1)
+
+# 11. 局面评估: 初始近均势；将杀局面给出极大分
+b0 = chess.Board()
+cp0 = ChessAI.evaluate_white_cp(b0)
+check("初始局面分接近 0（|cp|<40）", abs(cp0) < 40)
+bm = chess.Board()
+for san in ("f3", "e5", "g4"):
+    bm.push_san(san)
+cp_mate = ChessAI.evaluate_white_cp(bm)   # 黑方下一步可 Qh4#
+check("黑方一步将杀局面给出白方极低分", cp_mate < -900000)
+
+# 12. 走法质量: 抓住将杀=最佳; 走废棋=大漏勺
+best_move, best_score, loss_good, _ = ChessAI.analyze_move(bm, chess.Move.from_uci("d8h4"))
+check("将杀走法分差损失为0", loss_good == 0 and best_score > 900000)
+_, _, loss_bad, _ = ChessAI.analyze_move(bm, chess.Move.from_uci("a7a6"))
+check("错过将杀走废棋损失巨大(>200)", loss_bad > 200)
+
+# 13. 评估速度: 三个中局局面均在 1 秒内完成
+fens = [
+    "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+    "r2qk2r/ppp2ppp/2n1bn2/3pp3/1b2P3/1NN2N2/PPP2PPP/R1BQKB1R w KQkq d6 0 6",
+    "2kr3r/pp3ppp/2p5/2Pp4/3P4/5q2/P4PPP/R1B2RK1 w - - 0 14",
+]
+fast = True
+for fen in fens:
+    t0 = time.time()
+    ChessAI.evaluate_white_cp(chess.Board(fen))
+    if time.time() - t0 > 1.0:
+        fast = False
+check("中局评估均在1秒内完成", fast)
+
 print("\n%d/%d 项通过" % (sum(passed), len(passed)))
 if not all(passed):
     raise SystemExit(1)

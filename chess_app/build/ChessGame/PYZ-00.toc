@@ -3,6 +3,10 @@
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\__future__.py',
    'PYMODULE'),
+  ('_aix_support',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\_aix_support.py',
+   'PYMODULE'),
   ('_ast_unparse',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\_ast_unparse.py',
@@ -79,6 +83,7 @@
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\site-packages\\chess\\svg.py',
    'PYMODULE'),
+  ('chess_sfx', 'D:\\code\\chess_app\\chess_sfx.py', 'PYMODULE'),
   ('codeop',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\codeop.py',
@@ -118,6 +123,18 @@
   ('csv',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\csv.py',
+   'PYMODULE'),
+  ('ctypes',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\ctypes\\__init__.py',
+   'PYMODULE'),
+  ('ctypes._endian',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\ctypes\\_endian.py',
+   'PYMODULE'),
+  ('ctypes._layout',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\ctypes\\_layout.py',
    'PYMODULE'),
   ('dataclasses',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
@@ -411,6 +428,11 @@
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\pickle.py',
    'PYMODULE'),
+  ('piece_assets', 'D:\\code\\chess_app\\piece_assets.py', 'PYMODULE'),
+  ('platform',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\platform.py',
+   'PYMODULE'),
   ('pprint',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\pprint.py',
@@ -418,6 +440,10 @@
   ('py_compile',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\py_compile.py',
+   'PYMODULE'),
+  ('queue',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\queue.py',
    'PYMODULE'),
   ('quopri',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
@@ -462,6 +488,10 @@
   ('subprocess',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\subprocess.py',
+   'PYMODULE'),
+  ('sysconfig',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\sysconfig\\__init__.py',
    'PYMODULE'),
   ('tarfile',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
@@ -534,6 +564,14 @@
   ('urllib.response',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
    'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\urllib\\response.py',
+   'PYMODULE'),
+  ('uuid',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\uuid.py',
+   'PYMODULE'),
+  ('wave',
+   'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '
+   'Data\\sandbox_runtime\\bases\\c98c5042338ed152c6f10ecd8591889f\\python\\Lib\\wave.py',
    'PYMODULE'),
   ('xml',
    'C:\\Users\\suzhi\\AppData\\Local\\Doubao\\User '

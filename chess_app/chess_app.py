@@ -9,9 +9,11 @@
 对弈模式:
   1) 双人本地对弈: 玩家1/玩家2 自由选择执白, 或系统随机分配
   2) 人机对弈:     玩家自行选择执白/执黑, 或系统随机; 内置三档难度 AI
-界面: Tkinter + Unicode 棋子字形(无需外部图片), 便于 PyInstaller 单文件打包。
+外观: 三套棋子皮肤(立体经典/立体木纹/经典字符) × 四套棋盘主题; 走子音效。
+界面: Tkinter 绘制, 立体棋子为内嵌 PNG 资源, 便于 PyInstaller 单文件打包。
 """
 
+import base64
 import random
 import threading
 import tkinter as tk
@@ -20,19 +22,43 @@ from tkinter import messagebox
 
 import chess
 
+from chess_sfx import SoundBoard
+from piece_assets import PIECE_B64
+
 # ---------------------------------------------------------------------------
 # 界面常量
 # ---------------------------------------------------------------------------
 SQ = 64                       # 每格像素
 BOARD_PX = SQ * 8
-COLOR_LIGHT = "#EBECD0"
-COLOR_DARK = "#779556"
-COLOR_LAST = "#BACA44"
-COLOR_SELECT = "#F6F669"
-COLOR_DOT = "#262626"
 COLOR_PANEL = "#F4F1E8"
 FONT_UI = "Microsoft YaHei UI"
 FONT_PIECE = "Segoe UI Symbol"
+
+# 棋盘主题: (浅格, 深格, 上一步高亮, 选中高亮, 提示点)
+BOARD_THEMES = {
+    "green":  ("#EBECD0", "#779556", "#BACA44", "#F6F669", "#262626", "经典绿"),
+    "wood":   ("#E8CFA0", "#A06E3C", "#D9B25E", "#F6DE73", "#3A2412", "胡桃木"),
+    "slate":  ("#D8DFE8", "#5B7C99", "#8FB3D9", "#F2E27A", "#1E3A4D", "灰蓝"),
+    "marble": ("#EFEDE7", "#8E8B86", "#CDBE86", "#F4E08A", "#333333", "云石灰"),
+}
+# 棋子皮肤
+PIECE_SKINS = {
+    "classic3d": "立体经典",
+    "wood3d": "立体木纹",
+    "glyph": "经典字符",
+}
+SKIN_ASSET = {"classic3d": "classic", "wood3d": "wood"}     # 对应 piece_assets 前缀
+KIND_NAME = {chess.KING: "king", chess.QUEEN: "queen", chess.ROOK: "rook",
+             chess.BISHOP: "bishop", chess.KNIGHT: "knight", chess.PAWN: "pawn"}
+# 走法质量: 键 -> (中文名, 棋谱标记, 颜色)
+QUALITY = {
+    "brilliant": ("绝妙 !!", "!!", "#8E44AD"),
+    "best": ("最佳 !", "!", "#2E7D32"),
+    "good": ("好棋", "", "#6B8E23"),
+    "normal": ("普通", "", "#888888"),
+    "mistake": ("失误 ?!", "?!", "#E67E22"),
+    "blunder": ("大漏勺 ??", "??", "#C0392B"),
+}
 
 # Unicode 棋子字形: (颜色, 棋子类型) -> 字符
 GLYPH = {
@@ -61,6 +87,8 @@ SIDE_CN = {chess.WHITE: "白方", chess.BLACK: "黑方"}
 # ---------------------------------------------------------------------------
 class ChessAI:
     MATE = 1_000_000
+    MATE_CP = 100_000                  # 胜率展示用的“必杀”截断分
+    EVAL_DEPTH = 2                     # 实时评估搜索深度（保证 1 秒内出结果）
     NODE_CAP = 400_000                       # 单次思考节点上限, 保证界面响应
     VALUE = {
         chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330,
@@ -187,6 +215,56 @@ class ChessAI:
         return best
 
     @classmethod
+    def _root_search(cls, board, depth):
+        """根层搜索: 返回 [(move, 行棋方视角分)...]，吃子优先排序。"""
+        nodes = [0]
+        scored = []
+        alpha = -cls.MATE * 2
+        for move in cls._ordered_moves(board):
+            board.push(move)
+            sc = -cls._negamax(board, depth - 1, -cls.MATE * 2, -alpha, nodes)
+            board.pop()
+            scored.append((move, sc))
+            if sc > alpha:
+                alpha = sc
+        return scored
+
+    @staticmethod
+    def win_pct(cp):
+        """Elo logistic: centipawn -> 白方胜率%。
+        校准锚点: +100≈64%、+300≈85%、0=50%、-100≈36%。"""
+        x = max(-10000.0, min(10000.0, cp)) / 400.0
+        return 100.0 / (1.0 + 10.0 ** (-x))
+
+    @classmethod
+    def evaluate_white_cp(cls, board, depth=None):
+        """当前局面的白方视角 centipawn 分（将杀截断为 ±MATE_CP，和棋 0）。"""
+        depth = cls.EVAL_DEPTH if depth is None else depth
+        if board.is_checkmate():
+            return -cls.MATE_CP if board.turn == chess.WHITE else cls.MATE_CP
+        if board.is_game_over():
+            return 0
+        nodes = [0]
+        s = cls._negamax(board, depth, -cls.MATE * 2, cls.MATE * 2, nodes)
+        return s if board.turn == chess.WHITE else -s
+
+    @classmethod
+    def analyze_move(cls, pre_board, move, depth=None):
+        """对比玩家走法与引擎最优走法。
+        返回 (最佳走法, 最佳分[行棋方], 分差损失cp, 走完后白方视角cp)。"""
+        depth = cls.EVAL_DEPTH if depth is None else depth
+        scored = cls._root_search(pre_board, depth)
+        best_move, best_score = max(scored, key=lambda x: x[1])
+        pre_board.push(move)
+        after_cp = cls.evaluate_white_cp(pre_board, depth)
+        nodes = [0]
+        played_score = -cls._negamax(pre_board, depth - 1,
+                                     -cls.MATE * 2, cls.MATE * 2, nodes)
+        pre_board.pop()
+        loss = max(0, best_score - played_score)
+        return best_move, best_score, loss, after_cp
+
+    @classmethod
     def choose_move(cls, board, difficulty):
         """难度: easy=1层+随机性, medium=2层, hard=3层。返回一个合法走法。"""
         moves = list(board.legal_moves)
@@ -195,21 +273,12 @@ class ChessAI:
         if len(moves) == 1:
             return moves[0]
         depth, window = cls.DIFFICULTY.get(difficulty, (2, 0))
-        nodes = [0]
-        scored = []
-        alpha = -cls.MATE * 2
-        for move in cls._ordered_moves(board):
-            board.push(move)
-            sc = -cls._negamax(board, depth - 1, -cls.MATE * 2, -alpha, nodes)
-            board.pop()
-            scored.append((sc, move))
-            if sc > alpha:
-                alpha = sc
-        best = max(s for s, _ in scored)
+        scored = cls._root_search(board, depth)
+        best = max(s for _m, s in scored)
         if window:                                     # 简单难度: 近优走法中随机
-            candidates = [m for s, m in scored if s >= best - window]
+            candidates = [m for m, s in scored if s >= best - window]
         else:
-            candidates = [m for s, m in scored if s == best]
+            candidates = [m for m, s in scored if s == best]
         return random.choice(candidates)
 
 
@@ -263,6 +332,8 @@ class ChessApp(tk.Tk):
                 tkfont.nametofont(name).configure(family=FONT_UI, size=10)
             except tk.TclError:
                 pass
+        self._piece_font = tkfont.Font(family=FONT_PIECE, size=34)
+        self._coord_font = tkfont.Font(family="Consolas", size=8, weight="bold")
 
         self.menu_frame = tk.Frame(self, bg=COLOR_PANEL)
         self.game_frame = tk.Frame(self, bg=COLOR_PANEL)
@@ -276,6 +347,7 @@ class ChessApp(tk.Tk):
         self.selected = None
         self.legal_targets = {}          # to_square -> [Move]
         self.san_list = []
+        self.move_tags = []              # 与 san_list 平行的走法质量标签（AI 走法为 None）
         self.last_move = None
         self.game_over = False
         self.result_text = ""
@@ -283,6 +355,16 @@ class ChessApp(tk.Tk):
         self.ai_thinking = False
         self._ai_result = None
         self._ai_token = 0
+        self._analysis_token = 0         # 评估任务令牌（悔棋/新局使其失效）
+        self._analysis_busy = False
+        self.last_cp = 0
+
+        # 外观与音效
+        self.skin = "classic3d"
+        self.theme = "green"
+        self.var_sound = tk.BooleanVar(value=True)
+        self.sfx = SoundBoard(enabled=True)
+        self._img_cache = {}                 # (皮肤, 颜色, 类型) -> PhotoImage
 
         self._build_menu()
         self._build_game()
@@ -296,6 +378,8 @@ class ChessApp(tk.Tk):
         self.var_mode = tk.StringVar(value="pvp")
         self.var_side = tk.StringVar(value="random")
         self.var_diff = tk.StringVar(value="medium")
+        self.var_skin = tk.StringVar(value="classic3d")
+        self.var_theme = tk.StringVar(value="green")
 
         tk.Label(f, text="国际象棋对弈", font=(FONT_UI, 24, "bold"),
                  bg=COLOR_PANEL, fg="#2F4F2F").pack(pady=(34, 4))
@@ -343,11 +427,75 @@ class ChessApp(tk.Tk):
                            bg=COLOR_PANEL, activebackground=COLOR_PANEL,
                            font=(FONT_UI, 10)).pack(side="left", padx=(0, 18))
 
+        box_look = tk.LabelFrame(f, text="棋子皮肤 / 棋盘主题 / 音效",
+                                 font=(FONT_UI, 11, "bold"),
+                                 bg=COLOR_PANEL, fg="#333", padx=18, pady=10)
+        box_look.pack(fill="x", padx=46, pady=6)
+        skin_row = tk.Frame(box_look, bg=COLOR_PANEL)
+        skin_row.pack(anchor="w")
+        tk.Label(skin_row, text="棋子：", bg=COLOR_PANEL,
+                 font=(FONT_UI, 10)).pack(side="left")
+        for val, txt in PIECE_SKINS.items():
+            tk.Radiobutton(skin_row, text=txt, variable=self.var_skin, value=val,
+                           bg=COLOR_PANEL, activebackground=COLOR_PANEL,
+                           font=(FONT_UI, 10),
+                           command=self._apply_look_from_menu).pack(side="left",
+                                                                    padx=(0, 10))
+        theme_row = tk.Frame(box_look, bg=COLOR_PANEL)
+        theme_row.pack(anchor="w", pady=(4, 0))
+        tk.Label(theme_row, text="棋盘：", bg=COLOR_PANEL,
+                 font=(FONT_UI, 10)).pack(side="left")
+        for val, (_, _, _, _, _, txt) in BOARD_THEMES.items():
+            tk.Radiobutton(theme_row, text=txt, variable=self.var_theme, value=val,
+                           bg=COLOR_PANEL, activebackground=COLOR_PANEL,
+                           font=(FONT_UI, 10),
+                           command=self._apply_look_from_menu).pack(side="left",
+                                                                    padx=(0, 10))
+        tk.Checkbutton(box_look, text="开启走子音效（走子、吃子、将军、升变、终局）",
+                       variable=self.var_sound, bg=COLOR_PANEL,
+                       activebackground=COLOR_PANEL,
+                       command=self._toggle_sound,
+                       font=(FONT_UI, 10)).pack(anchor="w", pady=(6, 0))
+
         tk.Button(f, text="开 始 对 弈", font=(FONT_UI, 14, "bold"),
                   bg="#5B8C3E", fg="white", activebackground="#4A7532",
                   activeforeground="white", relief="flat", width=16, pady=8,
-                  command=self._start_game).pack(pady=24)
+                  command=self._start_game).pack(pady=20)
         self._refresh_side_options()
+
+    def _apply_look_from_menu(self):
+        self.skin = self.var_skin.get()
+        self.theme = self.var_theme.get()
+        self.sfx.enabled = self.var_sound.get()
+        if hasattr(self, "var_skin_game"):
+            self.var_skin_game.set(PIECE_SKINS[self.skin])
+            self.var_theme_game.set(BOARD_THEMES[self.theme][5])
+
+    def _apply_look_in_game(self):
+        label_to_skin = {v: k for k, v in PIECE_SKINS.items()}
+        label_to_theme = {v[5]: k for k, v in BOARD_THEMES.items()}
+        self.skin = label_to_skin[self.var_skin_game.get()]
+        self.theme = label_to_theme[self.var_theme_game.get()]
+        self.var_skin.set(self.skin)
+        self.var_theme.set(self.theme)
+        self._redraw()
+
+    def _toggle_sound(self):
+        self.sfx.enabled = self.var_sound.get()
+        if self.sfx.enabled:
+            self.sfx.play("select")
+
+    def _get_piece_image(self, color, piece_type):
+        """立体皮肤：从内嵌 base64 取 PNG（缓存 PhotoImage，避免重复解码）。"""
+        key = (self.skin, color, piece_type)
+        img = self._img_cache.get(key)
+        if img is None:
+            prefix = SKIN_ASSET[self.skin]
+            c = "w" if color == chess.WHITE else "b"
+            asset_key = f"{prefix}_{c}_{KIND_NAME[piece_type]}"
+            img = tk.PhotoImage(data=base64.b64decode(PIECE_B64[asset_key]))
+            self._img_cache[key] = img
+        return img
 
     def _refresh_side_options(self):
         is_pve = self.var_mode.get() == "pve"
@@ -365,7 +513,7 @@ class ChessApp(tk.Tk):
     def _show_menu(self):
         self.game_frame.pack_forget()
         self.menu_frame.pack(fill="both", expand=True)
-        self.geometry("480x560")
+        self.geometry("480x736")
 
     # ---------------- 对局界面 ----------------
     def _build_game(self):
@@ -391,17 +539,68 @@ class ChessApp(tk.Tk):
                                     fg="#444", wraplength=220, justify="left")
         self.lbl_capture.pack(anchor="w", pady=(0, 6))
 
+        # 胜率评估
+        eval_box = tk.Frame(side, bg=COLOR_PANEL)
+        eval_box.pack(fill="x", pady=(0, 4))
+        tk.Label(eval_box, text="胜率评估", font=(FONT_UI, 9, "bold"),
+                 bg=COLOR_PANEL, fg="#333").pack(anchor="w")
+        wr = tk.Frame(eval_box, bg=COLOR_PANEL)
+        wr.pack(fill="x")
+        self.lbl_win_w = tk.Label(wr, text="白方 50.0%", font=(FONT_UI, 8),
+                                  bg=COLOR_PANEL, fg="#333")
+        self.lbl_win_w.pack(side="left")
+        self.lbl_win_b = tk.Label(wr, text="黑方 50.0%", font=(FONT_UI, 8),
+                                  bg=COLOR_PANEL, fg="#333")
+        self.lbl_win_b.pack(side="right")
+        self.can_eval = tk.Canvas(eval_box, width=220, height=18,
+                                  highlightthickness=1,
+                                  highlightbackground="#AAA08A")
+        self.can_eval.pack(fill="x", pady=2)
+        self.lbl_eval_cp = tk.Label(eval_box, text="局面分 0.00（均势）",
+                                    font=(FONT_UI, 8), bg=COLOR_PANEL, fg="#555")
+        self.lbl_eval_cp.pack(anchor="w")
+        self.lbl_your_win = tk.Label(eval_box, text="", font=(FONT_UI, 9, "bold"),
+                                     bg=COLOR_PANEL, fg="#2F4F2F")
+        self.lbl_your_win.pack(anchor="w")
+        self.lbl_quality = tk.Label(eval_box, text="", font=(FONT_UI, 10, "bold"),
+                                    bg=COLOR_PANEL, wraplength=220, justify="left")
+        self.lbl_quality.pack(anchor="w", pady=(2, 0))
+
         hist_frame = tk.Frame(side, bg="#EEE9DC")
         hist_frame.pack(fill="x")
         tk.Label(hist_frame, text="棋谱（代数记谱）", font=(FONT_UI, 9, "bold"),
                  bg="#EEE9DC").pack(anchor="w", padx=4, pady=(4, 0))
-        self.txt_hist = tk.Text(hist_frame, width=26, height=13,
+        self.txt_hist = tk.Text(hist_frame, width=26, height=9,
                                 font=("Consolas", 10), bg="#FFFEF7",
                                 relief="flat", wrap="none")
         self.txt_hist.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
         sb = tk.Scrollbar(hist_frame, command=self.txt_hist.yview)
         sb.pack(side="right", fill="y")
         self.txt_hist.config(yscrollcommand=sb.set, state="disabled")
+
+        look = tk.Frame(side, bg=COLOR_PANEL)
+        look.pack(fill="x", pady=(8, 0))
+        self.var_skin_game = tk.StringVar(value=PIECE_SKINS[self.skin])
+        theme_labels = {v[5]: k for k, v in BOARD_THEMES.items()}
+        self.var_theme_game = tk.StringVar(
+            value=BOARD_THEMES[self.theme][5])
+        menu_skin = tk.OptionMenu(look, self.var_skin_game, *PIECE_SKINS.values(),
+                                  command=lambda _v: self._apply_look_in_game())
+        menu_theme = tk.OptionMenu(look, self.var_theme_game, *theme_labels,
+                                   command=lambda _v: self._apply_look_in_game())
+        menu_skin.config(font=(FONT_UI, 9), relief="flat", bg="#E7E1D2",
+                         activebackground="#D6CFBB", width=8)
+        menu_theme.config(font=(FONT_UI, 9), relief="flat", bg="#E7E1D2",
+                          activebackground="#D6CFBB", width=7)
+        menu_skin.grid(row=0, column=0, padx=(0, 4), sticky="w")
+        menu_theme.grid(row=0, column=1, padx=(0, 4), sticky="w")
+        tk.Checkbutton(look, text="音效", variable=self.var_sound,
+                       bg=COLOR_PANEL, activebackground=COLOR_PANEL,
+                       font=(FONT_UI, 9),
+                       command=self._toggle_sound).grid(row=0, column=2, sticky="w")
+        tk.Button(look, text="试听", font=(FONT_UI, 8), relief="flat",
+                  bg="#D9D3C2", activebackground="#C7C0AC",
+                  command=lambda: self.sfx.demo()).grid(row=0, column=3, padx=(4, 0))
 
         btns = tk.Frame(side, bg=COLOR_PANEL)
         btns.pack(fill="x", pady=10)
@@ -424,6 +623,11 @@ class ChessApp(tk.Tk):
     def _start_game(self):
         self.mode = self.var_mode.get()
         self.diff = self.var_diff.get()
+        self.skin = self.var_skin.get()
+        self.theme = self.var_theme.get()
+        self.sfx.enabled = self.var_sound.get()
+        self.var_skin_game.set(PIECE_SKINS[self.skin])
+        self.var_theme_game.set(BOARD_THEMES[self.theme][5])
         side_choice = self.var_side.get()
         if self.mode == "pve":
             if side_choice == "first":
@@ -455,11 +659,16 @@ class ChessApp(tk.Tk):
         self._reset_board()
         self.menu_frame.pack_forget()
         self.game_frame.pack(fill="both", expand=True)
-        self.geometry("792x586")
+        self.geometry("792x606")
         self._maybe_ai_turn()
 
     def _restart(self):
         # 保留模式/难度; 按当前选边设置重新开局（随机则重新随机）
+        self.skin = self.var_skin.get()
+        self.theme = self.var_theme.get()
+        self.sfx.enabled = self.var_sound.get()
+        self.var_skin_game.set(PIECE_SKINS[self.skin])
+        self.var_theme_game.set(BOARD_THEMES[self.theme][5])
         choice = self.var_side.get()
         if self.mode == "pve":
             if choice == "first":
@@ -490,20 +699,27 @@ class ChessApp(tk.Tk):
 
     def _reset_board(self):
         self._ai_token += 1
+        self._analysis_token += 1
+        self._analysis_busy = False
         self.board = chess.Board()
         self.selected = None
         self.legal_targets = {}
         self.san_list = []
+        self.move_tags = []
         self.last_move = None
         self.game_over = False
         self.result_text = ""
         self.ai_thinking = False
         self._ai_result = None
+        self.last_cp = 0
+        self.lbl_quality.config(text="")
         self._redraw()
         self._update_panel()
+        self._render_eval(0.0)
 
     def _back_to_menu(self):
         self._ai_token += 1
+        self._analysis_token += 1
         self.ai_thinking = False
         self._show_menu()
 
@@ -531,31 +747,30 @@ class ChessApp(tk.Tk):
     def _redraw(self):
         cv = self.canvas
         cv.delete("all")
-        piece_font = tkfont.Font(family=FONT_PIECE, size=34)
-        coord_font = tkfont.Font(family="Consolas", size=8, weight="bold")
+        c_light, c_dark, c_last, c_select, c_dot, _ = BOARD_THEMES[self.theme]
         for sq in range(64):
             f = chess.square_file(sq)
             r = chess.square_rank(sq)
             cx, cy = self._sq_center(sq)
             x0, y0 = cx - SQ // 2, cy - SQ // 2
-            fill = COLOR_LIGHT if (f + r) % 2 == 0 else COLOR_DARK
+            fill = c_light if (f + r) % 2 == 0 else c_dark
             if self.last_move and sq in (self.last_move.from_square,
                                          self.last_move.to_square):
-                fill = COLOR_LAST
+                fill = c_last
             if sq == self.selected:
-                fill = COLOR_SELECT
+                fill = c_select
             cv.create_rectangle(x0, y0, x0 + SQ, y0 + SQ, fill=fill, outline="")
             # 边缘坐标
-            tag_color = COLOR_DARK if (f + r) % 2 == 0 else COLOR_LIGHT
+            tag_color = c_dark if (f + r) % 2 == 0 else c_light
             edge_col = 0 if self.bottom_color == chess.WHITE else 7
             edge_row = 7 if self.bottom_color == chess.WHITE else 0
             if f == edge_col:
                 cv.create_text(x0 + 7, y0 + 8, text=str(r + 1),
-                               font=coord_font, fill=tag_color, anchor="nw")
+                               font=self._coord_font, fill=tag_color, anchor="nw")
             if r == edge_row:
                 cv.create_text(x0 + SQ - 6, y0 + SQ - 8,
                                text=chr(ord("a") + f),
-                               font=coord_font, fill=tag_color, anchor="se")
+                               font=self._coord_font, fill=tag_color, anchor="se")
 
         # 合法落点提示
         if self.selected is not None:
@@ -564,22 +779,29 @@ class ChessApp(tk.Tk):
                 if self.board.piece_at(target) is not None or self._is_ep_target(
                         self.selected, target):
                     cv.create_oval(cx - 28, cy - 28, cx + 28, cy + 28,
-                                   outline=COLOR_DOT, width=3)
+                                   outline=c_dot, width=3)
                 else:
                     cv.create_oval(cx - 9, cy - 9, cx + 9, cy + 9,
-                                   fill=COLOR_DOT, outline="")
+                                   fill=c_dot, outline="")
 
-        # 棋子
+        # 棋子：立体 PNG 皮肤 或 经典字符
+        use_image = self.skin in SKIN_ASSET
         for sq, piece in self.board.piece_map().items():
             cx, cy = self._sq_center(sq)
+            if use_image:
+                img = self._get_piece_image(piece.color, piece.piece_type)
+                cv.create_image(cx, cy, image=img, anchor="center")
+                continue
             glyph = GLYPH[(piece.color, piece.piece_type)]
             if piece.color == chess.WHITE:                       # 白字黑描边
                 for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     cv.create_text(cx + dx, cy + dy, text=glyph,
-                                   fill="#333333", font=piece_font)
-                cv.create_text(cx, cy, text=glyph, fill="#FAFAFA", font=piece_font)
+                                   fill="#333333", font=self._piece_font)
+                cv.create_text(cx, cy, text=glyph, fill="#FAFAFA",
+                               font=self._piece_font)
             else:
-                cv.create_text(cx, cy, text=glyph, fill="#1C1C1C", font=piece_font)
+                cv.create_text(cx, cy, text=glyph, fill="#1C1C1C",
+                               font=self._piece_font)
 
     def _is_ep_target(self, from_sq, to_sq):
         for m in self.board.legal_moves:
@@ -631,7 +853,20 @@ class ChessApp(tk.Tk):
         for m in self.board.legal_moves:
             if m.from_square == sq:
                 self.legal_targets.setdefault(m.to_square, []).append(m)
+        self.sfx.play("select")
         self._redraw()
+
+    def _play_move_sound(self, is_capture, is_castle, is_promotion):
+        if self.board.is_check():
+            self.sfx.play("check")
+        elif is_promotion:
+            self.sfx.play("promote")
+        elif is_castle:
+            self.sfx.play("castle")
+        elif is_capture:
+            self.sfx.play("capture")
+        else:
+            self.sfx.play("move")
 
     def _clear_selection(self):
         self.selected = None
@@ -644,14 +879,21 @@ class ChessApp(tk.Tk):
         return self.board.turn == self.human_color
 
     def _commit_move(self, move):
+        is_capture = self.board.is_capture(move)
+        is_castle = self.board.is_castling(move)
+        is_promotion = bool(move.promotion)
+        pre_copy = self.board.copy()
         san = self.board.san(move)
         self.board.push(move)
         self.san_list.append(san)
+        self.move_tags.append(None)
         self.last_move = move
         self._clear_selection()
         self._update_panel()
+        self._request_analysis(pre_copy, move, human_move=True)
         if self._check_game_end():
             return
+        self._play_move_sound(is_capture, is_castle, is_promotion)
         self._maybe_ai_turn()
 
     # ---- AI ----
@@ -686,17 +928,131 @@ class ChessApp(tk.Tk):
         self.ai_thinking = False
         move = self._ai_result
         if move in self.board.legal_moves:
+            is_capture = self.board.is_capture(move)
+            is_castle = self.board.is_castling(move)
+            is_promotion = bool(move.promotion)
             san = self.board.san(move)
             self.board.push(move)
             self.san_list.append(san)
+            self.move_tags.append(None)
             self.last_move = move
             self._redraw()
             self._update_panel()
+            self._request_analysis(None, None, human_move=False)
             if not self._check_game_end():
+                self._play_move_sound(is_capture, is_castle, is_promotion)
                 self._update_panel()
         else:                                                    # 兜底, 理论不可达
             self.ai_thinking = False
             self._update_panel()
+
+    # ---- 胜率评估与走法质量 ----
+    @staticmethod
+    def _is_sacrifice(pre_board, move):
+        """用高价值子去换低价值子（近似“弃子”判定）。"""
+        if not pre_board.is_capture(move):
+            return False
+        attacker = pre_board.piece_at(move.from_square)
+        victim = pre_board.piece_at(move.to_square)
+        if victim is None and pre_board.is_en_passant(move):
+            victim = chess.Piece(chess.PAWN, not pre_board.turn)
+        if attacker is None or victim is None:
+            return False
+        return ChessAI.VALUE[attacker.piece_type] > \
+            ChessAI.VALUE[victim.piece_type] + 100
+
+    @staticmethod
+    def _quality_tag(loss, brilliant):
+        if brilliant:
+            return "brilliant"
+        if loss <= 20:
+            return "best"
+        if loss <= 50:
+            return "good"
+        if loss <= 100:
+            return "normal"
+        if loss <= 200:
+            return "mistake"
+        return "blunder"
+
+    def _request_analysis(self, pre_board, played_move, human_move):
+        self._analysis_token += 1
+        token = self._analysis_token
+        self._analysis_result = None
+        depth = ChessAI.EVAL_DEPTH
+        post_copy = self.board.copy()
+
+        def worker():
+            result = {}
+            if human_move and pre_board is not None:
+                sacrifice = self._is_sacrifice(pre_board, played_move)
+                best_move, best_score, loss, cp = ChessAI.analyze_move(
+                    pre_board, played_move, depth)
+                brilliant = loss <= 20 and (
+                    best_score >= ChessAI.MATE - 1000 or sacrifice)
+                result.update(
+                    cp=cp, loss=int(loss),
+                    best_san=pre_board.san(best_move),
+                    tag=self._quality_tag(loss, brilliant))
+            else:
+                result["cp"] = ChessAI.evaluate_white_cp(post_copy, depth)
+            if token == self._analysis_token:
+                self._analysis_result = result
+
+        threading.Thread(target=worker, daemon=True).start()
+        self.after(90, lambda: self._poll_analysis(token))
+
+    def _poll_analysis(self, token):
+        if token != self._analysis_token:
+            return
+        result = getattr(self, "_analysis_result", None)
+        if result is None:
+            self.after(90, lambda: self._poll_analysis(token))
+            return
+        cp = result["cp"]
+        self.last_cp = cp
+        self._render_eval(ChessAI.win_pct(cp), cp)
+        if "tag" in result:
+            idx = len(self.san_list) - 1
+            if 0 <= idx < len(self.move_tags):
+                self.move_tags[idx] = result["tag"]
+            self._show_quality(result)
+            self._render_history()
+
+    def _show_quality(self, result):
+        cn, _mark, color = QUALITY[result["tag"]]
+        text = f"上一步评价：{cn}"
+        if result["tag"] in ("mistake", "blunder"):
+            text += f"（损失约 {result['loss']} 分，引擎首选 {result['best_san']}）"
+        elif result["tag"] in ("best", "good", "brilliant"):
+            text += f"（与最优解差 {result['loss']} 分）"
+        self.lbl_quality.config(text=text, fg=color)
+
+    def _render_eval(self, white_pct, cp=None):
+        cv = self.can_eval
+        cv.delete("all")
+        w = int(cv["width"])
+        ww = int(w * white_pct / 100.0)
+        cv.create_rectangle(0, 0, ww, 18, fill="#F7F7F0", outline="")
+        cv.create_rectangle(ww, 0, w, 18, fill="#2B2B2B", outline="")
+        cv.create_rectangle(0, 0, w - 1, 17, outline="#8A8170")
+        self.lbl_win_w.config(text=f"白方 {white_pct:.1f}%")
+        self.lbl_win_b.config(text=f"黑方 {100 - white_pct:.1f}%")
+        if cp is None:
+            cp = self.last_cp
+        if cp >= ChessAI.MATE_CP - 1000:
+            cp_text = "白方形成将杀，胜率接近 100%"
+        elif cp <= -ChessAI.MATE_CP + 1000:
+            cp_text = "黑方形成将杀，白方胜率接近 0%"
+        else:
+            adv = "均势" if abs(cp) < 15 else ("白优" if cp > 0 else "黑优")
+            cp_text = f"局面分 {cp / 100:+.2f}（{adv}）"
+        self.lbl_eval_cp.config(text=cp_text)
+        if self.mode == "pve":
+            your = white_pct if self.human_color == chess.WHITE else 100 - white_pct
+            self.lbl_your_win.config(text=f"你的胜率：{your:.1f}%")
+        else:
+            self.lbl_your_win.config(text="")
 
     # ---- 终局判定 ----
     def _check_game_end(self):
@@ -719,15 +1075,23 @@ class ChessApp(tk.Tk):
         else:
             self.result_text = "和棋"
         self._update_panel()
+        if b.is_checkmate():
+            if self.mode == "pve":
+                self.sfx.play("win" if winner == self.human_color else "lose")
+            else:
+                self.sfx.play("win")
+        else:
+            self.sfx.play("draw")
         messagebox.showinfo("对局结束", self.result_text, parent=self)
         return True
 
-    def _finish_custom(self, text):
+    def _finish_custom(self, text, sound="draw"):
         self.game_over = True
         self.ai_thinking = False
         self._ai_token += 1
         self.result_text = text
         self._update_panel()
+        self.sfx.play(sound)
         messagebox.showinfo("对局结束", text, parent=self)
 
     def _claim_draw(self):
@@ -752,30 +1116,49 @@ class ChessApp(tk.Tk):
         if not messagebox.askyesno("认输", f"确认由当前行棋的{self._side_name(side)}认输？",
                                    parent=self):
             return
-        self._finish_custom(f"{self._side_name(side)}认输，{self._side_name(not side)}获胜")
+        winner = not side
+        sound = "draw"
+        if self.mode == "pve":
+            sound = "win" if winner == self.human_color else "lose"
+        else:
+            sound = "win"
+        self._finish_custom(
+            f"{self._side_name(side)}认输，{self._side_name(winner)}获胜", sound)
 
     # ---- 悔棋 ----
     def _undo(self):
         if self.ai_thinking:
             self._ai_token += 1
             self.ai_thinking = False
+        self._analysis_token += 1                 # 使进行中的评估失效
         if not self.board.move_stack:
             return
         self.game_over = False
         self.result_text = ""
+        self.lbl_quality.config(text="")
         self._clear_selection()
-        if self.mode == "pve":
-            # 回退到玩家上一次决策点（撤销 电脑+玩家 两步；残局边界自动处理）
-            target = self.human_color
-            while self.board.move_stack and self.board.turn != target:
-                self.board.pop()
-                self.san_list.pop()
-        else:
+
+        def pop_one():
             self.board.pop()
             self.san_list.pop()
+            self.move_tags.pop()
+
+        if self.mode == "pve":
+            # 撤到“玩家上一次决策点”：pop 之后 board.turn 即被撤那步的行棋方，
+            # 一直撤到刚撤掉的是玩家自己的那步为止（通常撤 AI+玩家 两步）
+            target = self.human_color
+            while self.board.move_stack:
+                pop_one()
+                if self.board.turn == target:
+                    break
+        else:
+            pop_one()
         self.last_move = self.board.move_stack[-1] if self.board.move_stack else None
         self._redraw()
         self._update_panel()
+        self._request_analysis(None, None, human_move=False)
+        # 若撤完后轮到 AI（例如玩家执黑时撤掉了 AI 的开局），让 AI 重新走
+        self._maybe_ai_turn()
 
     # ---- 侧栏信息 ----
     def _side_name(self, color):
@@ -822,14 +1205,22 @@ class ChessApp(tk.Tk):
         else:
             cap_lines.append("子力均等")
         self.lbl_capture.config(text="\n".join(cap_lines))
+        self._render_history()
 
-        # 棋谱
+    def _mark_of(self, idx):
+        if idx >= len(self.move_tags) or not self.move_tags[idx]:
+            return ""
+        return QUALITY[self.move_tags[idx]][1]
+
+    def _render_history(self):
         self.txt_hist.config(state="normal")
         self.txt_hist.delete("1.0", "end")
         for i in range(0, len(self.san_list), 2):
-            white_san = self.san_list[i]
-            black_san = self.san_list[i + 1] if i + 1 < len(self.san_list) else ""
-            self.txt_hist.insert("end", f"{i // 2 + 1:>2}. {white_san:<8}{black_san}\n")
+            white_san = self.san_list[i] + self._mark_of(i)
+            black_san = ""
+            if i + 1 < len(self.san_list):
+                black_san = self.san_list[i + 1] + self._mark_of(i + 1)
+            self.txt_hist.insert("end", f"{i // 2 + 1:>2}. {white_san:<9}{black_san}\n")
         self.txt_hist.see("end")
         self.txt_hist.config(state="disabled")
 

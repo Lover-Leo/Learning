@@ -1,3 +1,5 @@
 python-chess>=1.11
+# 仅重新生成棋子素材时需要：
+Pillow>=11.0
 # 仅打包 exe 时需要：
 pyinstaller>=6.0
