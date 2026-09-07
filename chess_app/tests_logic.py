@@ -78,7 +78,7 @@ b = chess.Board()
 moves_played = 0
 ok = True
 while not b.is_game_over() and not b.can_claim_draw() and moves_played < 300:
-    m = ChessAI.choose_move(b, "easy")
+    m = ChessAI.choose_move(b, "medium")   # medium 无随机窗，自对弈确定性收敛
     if m not in b.legal_moves:
         ok = False
         break

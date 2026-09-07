@@ -11,7 +11,7 @@ import os
 from PIL import Image, ImageDraw, ImageFilter
 
 SS = 256                      # 超采样画布
-OUT = 64
+SIZES = (64, 80, 96, 112, 128)   # 对应 Windows 100/125/150/175/200% 缩放
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSET_DIR = os.path.join(HERE, "assets")
 
@@ -110,7 +110,7 @@ def lerp(c1, c2, t):
     return tuple(int(a + (b - a) * t) for a, b in zip(c1, c2))
 
 
-def render(kind, style, color):
+def render(kind, style, color, size=64):
     pal = PALETTES[style][color]
     hi, lo, outline = pal[0], pal[1], pal[2]
 
@@ -158,7 +158,7 @@ def render(kind, style, color):
             gd.arc((x0 - 40, 60, x0 + 40, 210), 95, 265, fill=pal[3] + (70,), width=3)
         grain.putalpha(Image.composite(grain.split()[3], Image.new("L", (SS, SS), 0), mask))
         out = Image.alpha_composite(out, grain)
-    return out.resize((OUT, OUT), Image.LANCZOS)
+    return out.resize((size, size), Image.LANCZOS)
 
 
 KINDS = ("king", "queen", "rook", "bishop", "knight", "pawn")
@@ -173,18 +173,20 @@ def main():
         for color in COLORS:
             row = []
             for kind in KINDS:
-                img = render(kind, style, color)
-                path = os.path.join(ASSET_DIR, f"{style}_{color}_{kind}.png")
-                img.save(path)
-                buf = io.BytesIO()
-                img.save(buf, format="PNG")
-                encoded[f"{style}_{color}_{kind}"] = base64.b64encode(
-                    buf.getvalue()).decode("ascii")
-                row.append(img)
+                for size in SIZES:
+                    img = render(kind, style, color, size)
+                    buf = io.BytesIO()
+                    img.save(buf, format="PNG")
+                    encoded[f"{style}_{color}_{kind}_{size}"] = base64.b64encode(
+                        buf.getvalue()).decode("ascii")
+                    if size == 64:                          # 磁盘只留一套预览 PNG
+                        img.save(os.path.join(
+                            ASSET_DIR, f"{style}_{color}_{kind}.png"))
+                        row.append(img)
             tiles.append(row)
 
-    # 预览图：4 行 × 6 列，棋盘格底
-    cell = OUT
+    # 预览图：4 行 × 6 列，棋盘格底（使用 64 档）
+    cell = 64
     preview = Image.new("RGB", (cell * 6, cell * 4), (255, 255, 255))
     pd = ImageDraw.Draw(preview)
     for ri, row in enumerate(tiles):
@@ -200,7 +202,8 @@ def main():
 
     # 内嵌资源模块
     lines = ['# -*- coding: utf-8 -*-',
-             '"""由 make_assets.py 自动生成的立体棋子 PNG(base64)，请勿手改。"""',
+             '"""由 make_assets.py 自动生成的多 DPI 立体棋子 PNG(base64)，请勿手改。"""',
+             'PIECE_SIZES = %r' % (SIZES,),
              'PIECE_B64 = {']
     for k, v in encoded.items():
         lines.append(f'    {k!r}: {v!r},')
@@ -208,7 +211,8 @@ def main():
     with open(os.path.join(HERE, "piece_assets.py"), "w", encoding="utf-8") as fp:
         fp.write("\n".join(lines))
     size_kb = os.path.getsize(os.path.join(HERE, "piece_assets.py")) // 1024
-    print(f"生成 {len(encoded)} 个棋子, piece_assets.py 约 {size_kb} KB")
+    print(f"生成 {len(encoded)} 个棋子（{len(SIZES)} 档尺寸），"
+          f"piece_assets.py 约 {size_kb} KB")
 
 
 if __name__ == "__main__":

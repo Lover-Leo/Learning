@@ -14,6 +14,7 @@
 """
 
 import base64
+import os
 import random
 import threading
 import tkinter as tk
@@ -23,7 +24,22 @@ from tkinter import messagebox
 import chess
 
 from chess_sfx import SoundBoard
-from piece_assets import PIECE_B64
+from piece_assets import PIECE_B64, PIECE_SIZES
+
+
+def enable_dpi_awareness():
+    """Windows 高 DPI 感知：避免系统位图拉伸模糊，并可读取真实缩放率。"""
+    try:
+        import ctypes
+        try:                                    # Win10 1703+: per-monitor-v2
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)
+        except (AttributeError, OSError):
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)
+            except (AttributeError, OSError):
+                ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
 
 # ---------------------------------------------------------------------------
 # 界面常量
@@ -304,8 +320,8 @@ class PromotionDialog(tk.Toplevel):
         self.transient(master)
         self.grab_set()
         self.update_idletasks()
-        x = master.winfo_rootx() + 180
-        y = master.winfo_rooty() + 220
+        x = master.winfo_rootx() + int(180 * master.scale)
+        y = master.winfo_rooty() + int(220 * master.scale)
         self.geometry(f"+{x}+{y}")
         master.wait_window(self)
 
@@ -334,6 +350,17 @@ class ChessApp(tk.Tk):
                 pass
         self._piece_font = tkfont.Font(family=FONT_PIECE, size=34)
         self._coord_font = tkfont.Font(family="Consolas", size=8, weight="bold")
+
+        # ---- 高 DPI 适配：所有像素尺寸按系统缩放率计算 ----
+        if os.environ.get("CHESS_SCALE"):              # 测试用缩放覆盖
+            scale = float(os.environ["CHESS_SCALE"])
+        else:
+            scale = self.winfo_fpixels("1i") / 96.0
+        self.scale = max(0.8, min(2.5, scale))
+        target = 64 * self.scale
+        self.SQ = min(PIECE_SIZES, key=lambda b: abs(b - target))
+        self.BOARD_PX = self.SQ * 8
+        self.side_w = max(224, int(236 * self.scale))
 
         self.menu_frame = tk.Frame(self, bg=COLOR_PANEL)
         self.game_frame = tk.Frame(self, bg=COLOR_PANEL)
@@ -486,13 +513,13 @@ class ChessApp(tk.Tk):
             self.sfx.play("select")
 
     def _get_piece_image(self, color, piece_type):
-        """立体皮肤：从内嵌 base64 取 PNG（缓存 PhotoImage，避免重复解码）。"""
-        key = (self.skin, color, piece_type)
+        """立体皮肤：从内嵌 base64 取 PNG（按当前 DPI 档位取尺寸并缓存）。"""
+        key = (self.skin, color, piece_type, self.SQ)
         img = self._img_cache.get(key)
         if img is None:
             prefix = SKIN_ASSET[self.skin]
             c = "w" if color == chess.WHITE else "b"
-            asset_key = f"{prefix}_{c}_{KIND_NAME[piece_type]}"
+            asset_key = f"{prefix}_{c}_{KIND_NAME[piece_type]}_{self.SQ}"
             img = tk.PhotoImage(data=base64.b64decode(PIECE_B64[asset_key]))
             self._img_cache[key] = img
         return img
@@ -510,33 +537,43 @@ class ChessApp(tk.Tk):
             for rb in child.winfo_children():
                 rb.config(state=state)
 
+    def _fit_window(self):
+        """按控件实际需求设置窗口大小（随 DPI 缩放自适应，不裁切内容）并居中。"""
+        self.update_idletasks()
+        w = min(self.winfo_reqwidth(), self.winfo_screenwidth() - 40)
+        h = min(self.winfo_reqheight(), self.winfo_screenheight() - 60)
+        x = max(0, (self.winfo_screenwidth() - w) // 2)
+        y = max(0, (self.winfo_screenheight() - h) // 2 - 20)
+        self.geometry(f"{w}x{h}+{x}+{y}")
+
     def _show_menu(self):
         self.game_frame.pack_forget()
         self.menu_frame.pack(fill="both", expand=True)
-        self.geometry("480x736")
+        self._fit_window()
 
     # ---------------- 对局界面 ----------------
     def _build_game(self):
         f = self.game_frame
-        self.canvas = tk.Canvas(f, width=BOARD_PX, height=BOARD_PX,
+        self.canvas = tk.Canvas(f, width=self.BOARD_PX, height=self.BOARD_PX,
                                 highlightthickness=0, bd=0)
         self.canvas.bind("<Button-1>", self._on_canvas_click)
         self.canvas.grid(row=0, column=0, rowspan=2, padx=(12, 8), pady=12)
 
-        side = tk.Frame(f, bg=COLOR_PANEL, width=236)
+        side = tk.Frame(f, bg=COLOR_PANEL, width=self.side_w)
         side.grid(row=0, column=1, sticky="n", pady=12, padx=(0, 12))
         side.grid_propagate(False)
+        wrap = self.side_w - 16
 
         self.lbl_title = tk.Label(side, font=(FONT_UI, 11, "bold"),
-                                  bg=COLOR_PANEL, fg="#2F4F2F", wraplength=220,
+                                  bg=COLOR_PANEL, fg="#2F4F2F", wraplength=wrap,
                                   justify="left")
         self.lbl_title.pack(anchor="w")
         self.lbl_status = tk.Label(side, font=(FONT_UI, 12, "bold"),
-                                   bg=COLOR_PANEL, fg="#B23A2E", wraplength=220,
+                                   bg=COLOR_PANEL, fg="#B23A2E", wraplength=wrap,
                                    justify="left")
         self.lbl_status.pack(anchor="w", pady=(8, 4))
         self.lbl_capture = tk.Label(side, font=(FONT_UI, 9), bg=COLOR_PANEL,
-                                    fg="#444", wraplength=220, justify="left")
+                                    fg="#444", wraplength=wrap, justify="left")
         self.lbl_capture.pack(anchor="w", pady=(0, 6))
 
         # 胜率评估
@@ -552,7 +589,7 @@ class ChessApp(tk.Tk):
         self.lbl_win_b = tk.Label(wr, text="黑方 50.0%", font=(FONT_UI, 8),
                                   bg=COLOR_PANEL, fg="#333")
         self.lbl_win_b.pack(side="right")
-        self.can_eval = tk.Canvas(eval_box, width=220, height=18,
+        self.can_eval = tk.Canvas(eval_box, width=self.side_w - 16, height=18,
                                   highlightthickness=1,
                                   highlightbackground="#AAA08A")
         self.can_eval.pack(fill="x", pady=2)
@@ -563,7 +600,8 @@ class ChessApp(tk.Tk):
                                      bg=COLOR_PANEL, fg="#2F4F2F")
         self.lbl_your_win.pack(anchor="w")
         self.lbl_quality = tk.Label(eval_box, text="", font=(FONT_UI, 10, "bold"),
-                                    bg=COLOR_PANEL, wraplength=220, justify="left")
+                                    bg=COLOR_PANEL, wraplength=self.side_w - 16,
+                                    justify="left")
         self.lbl_quality.pack(anchor="w", pady=(2, 0))
 
         hist_frame = tk.Frame(side, bg="#EEE9DC")
@@ -659,7 +697,7 @@ class ChessApp(tk.Tk):
         self._reset_board()
         self.menu_frame.pack_forget()
         self.game_frame.pack(fill="both", expand=True)
-        self.geometry("792x606")
+        self._fit_window()
         self._maybe_ai_turn()
 
     def _restart(self):
@@ -731,10 +769,10 @@ class ChessApp(tk.Tk):
             col, row = f, 7 - r
         else:
             col, row = 7 - f, r
-        return col * SQ + SQ // 2, row * SQ + SQ // 2
+        return col * self.SQ + self.SQ // 2, row * self.SQ + self.SQ // 2
 
     def _xy_to_sq(self, x, y):
-        col, row = x // SQ, y // SQ
+        col, row = x // self.SQ, y // self.SQ
         if not (0 <= col < 8 and 0 <= row < 8):
             return None
         if self.bottom_color == chess.WHITE:
@@ -747,54 +785,60 @@ class ChessApp(tk.Tk):
     def _redraw(self):
         cv = self.canvas
         cv.delete("all")
+        sq = self.SQ
+        s = self.scale
         c_light, c_dark, c_last, c_select, c_dot, _ = BOARD_THEMES[self.theme]
-        for sq in range(64):
-            f = chess.square_file(sq)
-            r = chess.square_rank(sq)
-            cx, cy = self._sq_center(sq)
-            x0, y0 = cx - SQ // 2, cy - SQ // 2
+        for each_sq in range(64):
+            f = chess.square_file(each_sq)
+            r = chess.square_rank(each_sq)
+            cx, cy = self._sq_center(each_sq)
+            x0, y0 = cx - sq // 2, cy - sq // 2
             fill = c_light if (f + r) % 2 == 0 else c_dark
-            if self.last_move and sq in (self.last_move.from_square,
-                                         self.last_move.to_square):
+            if self.last_move and each_sq in (self.last_move.from_square,
+                                              self.last_move.to_square):
                 fill = c_last
-            if sq == self.selected:
+            if each_sq == self.selected:
                 fill = c_select
-            cv.create_rectangle(x0, y0, x0 + SQ, y0 + SQ, fill=fill, outline="")
+            cv.create_rectangle(x0, y0, x0 + sq, y0 + sq, fill=fill, outline="")
             # 边缘坐标
             tag_color = c_dark if (f + r) % 2 == 0 else c_light
             edge_col = 0 if self.bottom_color == chess.WHITE else 7
             edge_row = 7 if self.bottom_color == chess.WHITE else 0
             if f == edge_col:
-                cv.create_text(x0 + 7, y0 + 8, text=str(r + 1),
+                cv.create_text(x0 + 7 * s, y0 + 8 * s, text=str(r + 1),
                                font=self._coord_font, fill=tag_color, anchor="nw")
             if r == edge_row:
-                cv.create_text(x0 + SQ - 6, y0 + SQ - 8,
+                cv.create_text(x0 + sq - 6 * s, y0 + sq - 8 * s,
                                text=chr(ord("a") + f),
                                font=self._coord_font, fill=tag_color, anchor="se")
 
         # 合法落点提示
+        ring_r = 28 * s
+        dot_r = 9 * s
+        ring_w = max(2, int(round(3 * s)))
         if self.selected is not None:
             for target in self.legal_targets:
                 cx, cy = self._sq_center(target)
                 if self.board.piece_at(target) is not None or self._is_ep_target(
                         self.selected, target):
-                    cv.create_oval(cx - 28, cy - 28, cx + 28, cy + 28,
-                                   outline=c_dot, width=3)
+                    cv.create_oval(cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r,
+                                   outline=c_dot, width=ring_w)
                 else:
-                    cv.create_oval(cx - 9, cy - 9, cx + 9, cy + 9,
+                    cv.create_oval(cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r,
                                    fill=c_dot, outline="")
 
         # 棋子：立体 PNG 皮肤 或 经典字符
         use_image = self.skin in SKIN_ASSET
-        for sq, piece in self.board.piece_map().items():
-            cx, cy = self._sq_center(sq)
+        ox = max(1, int(round(s)))                        # 白字描边偏移
+        for each_sq, piece in self.board.piece_map().items():
+            cx, cy = self._sq_center(each_sq)
             if use_image:
                 img = self._get_piece_image(piece.color, piece.piece_type)
                 cv.create_image(cx, cy, image=img, anchor="center")
                 continue
             glyph = GLYPH[(piece.color, piece.piece_type)]
-            if piece.color == chess.WHITE:                       # 白字黑描边
-                for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            if piece.color == chess.WHITE:               # 白字黑描边
+                for dx, dy in ((-ox, 0), (ox, 0), (0, -ox), (0, ox)):
                     cv.create_text(cx + dx, cy + dy, text=glyph,
                                    fill="#333333", font=self._piece_font)
                 cv.create_text(cx, cy, text=glyph, fill="#FAFAFA",
@@ -1230,6 +1274,7 @@ class ChessApp(tk.Tk):
 
 
 def main():
+    enable_dpi_awareness()
     app = ChessApp()
     app.mainloop()
 
