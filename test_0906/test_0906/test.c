@@ -81,24 +81,85 @@
 
 
 //switch语句尝试
+//#include<stdio.h>
+//int main()
+//{
+//	int day = 0;
+//	scanf("%d", &day);
+//	switch (day)
+//	{
+//	case 1:
+//	case 2:
+//	case 3:
+//	case 4:
+//	case 5:
+//		printf("weekday");
+//		break;
+//	case 6:
+//	case 7:
+//		printf("weekend");
+//		break;
+//	}
+//	return 0;
+//}
+
+
+
+//打印1-10
+//#include<stdio.h>
+//int main()
+//{
+//	int a = 1;
+//	while (a < 11)
+//	{
+//		printf("%d\n", a);
+//		a++;
+//	}
+//	return 0;
+//}
+
+
+//输入出生日期
+//#include<stdio.h>
+//int main()
+//{
+//	int year = 0;
+//	int month = 0;
+//	int day = 0;
+//	scanf("%4d%2d%2d", &year, &month, &day);
+//	printf("year = %04d\n", year);
+//	printf("month = %02d\n", month);
+//	printf("day = %02d\n", day);
+//	return 0;
+//}
+
+
+//学生信息输入输出
+//#include<stdio.h>
+//int main()
+//{
+//	int ID = 0;
+//	int Chi = 0;
+//	int Mat = 0;
+//	int Eng = 0;
+//	scanf("%d,%d,%d,%d", &ID, &Chi, &Mat, &Eng);
+//	printf("The each subject score of No.%d is %d,%d,%d", ID, Chi, Mat, Eng);
+//	return 0;
+//}
+//比较四个数输出最大数
 #include<stdio.h>
+int bijiao(int a, int b)
+{
+	if (a >= b)
+		return a;
+	else
+		return b;
+}
+
 int main()
 {
-	int day = 0;
-	scanf("%d", &day);
-	switch (day)
-	{
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-		printf("weekday");
-		break;
-	case 6:
-	case 7:
-		printf("weekend");
-		break;
-	}
+	int a, b, c, d = 0;
+
+
 	return 0;
 }
