@@ -147,19 +147,35 @@
 //	return 0;
 //}
 //比较四个数输出最大数
-#include<stdio.h>
-int bijiao(int a, int b)
-{
-	if (a >= b)
-		return a;
-	else
-		return b;
-}
+//#include<stdio.h>
+//int main()
+//{
+//	int arr[4] = { 0 };
+//	scanf("%d %d %d %d", &arr[0], &arr[1], &arr[2], &arr[3]);
+//	int max = arr[0];
+//	int i = 0;
+//	while (i < 4)
+//	{
+//		if (arr[i] >= max)
+//		{
+//			max = arr[i];
+//		}
+//		i++;
+//	}
+//	printf("%d", max);
+//	return 0;
+//}
 
+#include<stdio.h>
+#define PI 3.14
+float jisuan(int r)
+{
+	return 4 / 3 * PI * r * r * r;
+}
 int main()
 {
-	int a, b, c, d = 0;
-
-
+	float r = 0.0f;
+	scanf("%f", r);
+	printf("%.3f", jisuan(r));
 	return 0;
 }
