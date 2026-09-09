@@ -166,16 +166,117 @@
 //	return 0;
 //}
 
+//#include<stdio.h>
+//#define PI 3.14
+//float jisuan(int r)
+//{
+//	return 4 / 3 * PI * r * r * r;
+//}
+//int main()
+//{
+//	float r = 0.0f;
+//	scanf("%f", r);
+//	printf("%.3f", jisuan(r));
+//	return 0;
+//}
+
+
+//阶乘练习
+//#include<stdio.h>
+//int main()
+//{
+//	int n = 0;
+//	int i = 0;
+//	int sum = 1;
+//	scanf("%d", &n);
+//	for (i = 1;i <= n;i++)
+//	{
+//		sum = sum * i;
+//	}
+//	printf("%d", sum);
+//	return 0;
+//}
+
+
+
+//阶乘累加
+//#include<stdio.h>
+//int main()
+//{
+//	int leicheng = 1;
+//	int sum = 0;
+//	int i = 0;
+//	int a = 0;
+//	for (i = 1;i <= 10;i++)
+//	{
+//		leicheng = 1;
+//		for (a = 1;a <= i;a++)
+//			leicheng = leicheng * a;
+//		sum = sum + leicheng;
+//	}
+//	printf("%d", sum);
+//	return 0;
+//}
+////精简版
+//#include<stdio.h>
+//int main()
+//{
+//	int num = 0;
+//	int sum = 0;
+//	int leich = 1;
+//	for (num = 1;num <= 10;num++)
+//	{
+//		leich = leich * num;
+//		sum = sum + leich;
+//	}
+//	printf("%d", sum);
+//	return 0;
+//}
+
+
+//有序数组中查找某一个数
+//#include<stdio.h>
+//int main()
+//{
+//	int arr[] = { 1,2,3,4,5,6,7 };
+//	int a = 0;
+//	int i = 0;
+//	printf("请输入要查找的数字");
+//	scanf("%d", &a);
+//	for (i = 0;i < 7;i++)
+//	{
+//		if (arr[i] == a)
+//		{
+//			printf("您要查找的数字在第%d位", i + 1);
+//			break;
+//		}
+//		if()
+//	}
+//	return 0;
+//}
+
+
+//二分法查找
 #include<stdio.h>
-#define PI 3.14
-float jisuan(int r)
-{
-	return 4 / 3 * PI * r * r * r;
-}
 int main()
 {
-	float r = 0.0f;
-	scanf("%f", r);
-	printf("%.3f", jisuan(r));
+	int num = 0;
+	int arr[] = { 1,2,3,4,5,6,7 };
+	int sz = sizeof(arr) / sizeof(arr[0]);
+	int nit = sz / 2;
+	scanf("%d", &num);
+	while (1)
+	{
+		if (arr[nit] > num)
+			nit = nit / 2;
+		else if (arr[nit] < num)
+			nit = (nit + sz) / 2;
+		else if(arr[nit] == num)
+		{
+			printf("在第%d", nit+1);
+			break;
+		}
+
+	}
 	return 0;
 }
