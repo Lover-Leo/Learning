@@ -257,26 +257,51 @@
 
 
 //二分法查找
+//#include<stdio.h>
+//int main()
+//{
+//	int num = 0;
+//	int arr[] = { 1,2,3,4,5,6,7 };
+//	int sz = sizeof(arr) / sizeof(arr[0]);
+//	int nit = sz / 2;
+//	scanf("%d", &num);
+//	while (1)
+//	{
+//		if (arr[nit] > num)
+//			nit = nit / 2;
+//		else if (arr[nit] < num)
+//			nit = (nit + sz) / 2;
+//		else if(arr[nit] == num)
+//		{
+//			printf("在第%d", nit+1);
+//			break;
+//		}
+//
+//	}
+//	return 0;
+//}
+
+//判断素数函数
 #include<stdio.h>
+
+char sushu(int x)
+{
+	int i = 1;
+	if (x == 1)
+		return 'Y';
+	for (i = 2;i < x;i++)
+	{
+		if (x % i == 0)
+		{
+			return 'N';;
+		}
+	}
+	if (i == x)
+		return 'Y';
+}
 int main()
 {
-	int num = 0;
-	int arr[] = { 1,2,3,4,5,6,7 };
-	int sz = sizeof(arr) / sizeof(arr[0]);
-	int nit = sz / 2;
-	scanf("%d", &num);
-	while (1)
-	{
-		if (arr[nit] > num)
-			nit = nit / 2;
-		else if (arr[nit] < num)
-			nit = (nit + sz) / 2;
-		else if(arr[nit] == num)
-		{
-			printf("在第%d", nit+1);
-			break;
-		}
-
-	}
+	int a = 12;
+	printf("%c",sushu(a));
 	return 0;
 }

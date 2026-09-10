@@ -1,2 +1,3 @@
 ﻿  test.c
+D:\code\test_0906\test_0906\test.c(301,1): warning C4715: “sushu”: 不是所有的控件路径都返回值
   test_0906.vcxproj -> D:\code\test_0906\x64\Debug\test_0906.exe
