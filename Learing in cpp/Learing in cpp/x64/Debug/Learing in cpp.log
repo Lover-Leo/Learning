@@ -1,0 +1,40 @@
+﻿  test.cpp
+D:\code\Learing in cpp\Learing in cpp\test.cpp(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+D:\code\Learing in cpp\Learing in cpp\test.cpp(63,15): error C2001: 字符串字面量中的换行符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(64,1): error C2143: 语法错误: 缺少“;”(在“}”的前面)
+D:\code\Learing in cpp\Learing in cpp\test.cpp(68,10): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+D:\code\Learing in cpp\Learing in cpp\test.cpp(72,16): error C2001: 字符串字面量中的换行符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(73,3): error C2143: 语法错误: 缺少“;”(在“return”的前面)
+D:\code\Learing in cpp\Learing in cpp\test.cpp(79,21): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
+D:\code\Learing in cpp\Learing in cpp\test.cpp(84,6): error C2065: “cout”: 未声明的标识符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(86,30): error C2065: “stduent”: 未声明的标识符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(86,23): error C2923: "std::vector": "stduent" 不是参数 "_Ty" 的有效 模板 类型参数
+      D:\code\Learing in cpp\Learing in cpp\test.cpp(86,30):
+      参见“stduent”的声明
+  
+D:\code\Learing in cpp\Learing in cpp\test.cpp(86,23): error C2976: “std::vector'”: 模板 参数太少
+      D:\VS2026\VC\Tools\MSVC\14.51.36231\include\vector(459,7):
+      参见“std::vector”的声明
+  
+D:\code\Learing in cpp\Learing in cpp\test.cpp(86,39): error C2955: “std::vector”: 使用 类 模板 需要 模板 参数列表
+      D:\VS2026\VC\Tools\MSVC\14.51.36231\include\vector(459,7):
+      参见“std::vector”的声明
+  
+D:\code\Learing in cpp\Learing in cpp\test.cpp(97,59): error C2065: “score”: 未声明的标识符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(101,15): error C2001: 字符串字面量中的换行符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(102,1): error C2143: 语法错误: 缺少“;”(在“}”的前面)
+D:\code\Learing in cpp\Learing in cpp\test.cpp(118,15): error C2001: 字符串字面量中的换行符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(119,1): error C2143: 语法错误: 缺少“;”(在“}”的前面)
+D:\code\Learing in cpp\Learing in cpp\test.cpp(128,16): error C2001: 字符串字面量中的换行符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(129,8): error C2143: 语法错误: 缺少“;”(在“std::cin”的前面)
+D:\code\Learing in cpp\Learing in cpp\test.cpp(154,4): error C2664: “void findstudent(std::vector)”: 无法将参数 1 从“std::vector<student,std::allocator<student>>”转换为“std::vector”
+      D:\code\Learing in cpp\Learing in cpp\test.cpp(154,16):
+      没有可用于执行该转换的用户定义的转换运算符，或者无法调用该运算符
+      D:\code\Learing in cpp\Learing in cpp\test.cpp(86,6):
+      参见“findstudent”的声明
+      D:\code\Learing in cpp\Learing in cpp\test.cpp(154,4):
+      尝试匹配参数列表“(std::vector<student,std::allocator<student>>)”时
+  
+D:\code\Learing in cpp\Learing in cpp\test.cpp(164,17): error C2001: 字符串字面量中的换行符
+D:\code\Learing in cpp\Learing in cpp\test.cpp(165,4): error C2143: 语法错误: 缺少“;”(在“break”的前面)
+D:\code\Learing in cpp\Learing in cpp\test.cpp(121,1): error C1075: “{”: 未找到匹配令牌

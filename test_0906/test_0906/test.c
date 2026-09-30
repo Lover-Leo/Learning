@@ -282,26 +282,26 @@
 //}
 
 //判断素数函数
-#include<stdio.h>
-
-char sushu(int x)
-{
-	int i = 1;
-	if (x == 1)
-		return 'Y';
-	for (i = 2;i < x;i++)
-	{
-		if (x % i == 0)
-		{
-			return 'N';;
-		}
-	}
-	if (i == x)
-		return 'Y';
-}
-int main()
-{
-	int a = 12;
-	printf("%c",sushu(a));
-	return 0;
-}
+//#include<stdio.h>
+//
+//char sushu(int x)
+//{
+//	int i = 1;
+//	if (x == 1)
+//		return 'Y';
+//	for (i = 2;i < x;i++)
+//	{
+//		if (x % i == 0)
+//		{
+//			return 'N';;
+//		}
+//	}
+//	if (i == x)
+//		return 'Y';
+//}
+//int main()
+//{
+//	int a = 12;
+//	printf("%c",sushu(a));
+//	return 0;
+//}

@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "D:\\code\\test_0906\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{7FE13062-CAB2-41F1-A73C-3E401DB33DCB}|test_0906\\test_0906.vcxproj|D:\\code\\test_0906\\test_0906\\test in cpp.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{7FE13062-CAB2-41F1-A73C-3E401DB33DCB}|test_0906\\test_0906.vcxproj|solutionrelative:test_0906\\test in cpp.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{7FE13062-CAB2-41F1-A73C-3E401DB33DCB}|test_0906\\test_0906.vcxproj|D:\\code\\test_0906\\test_0906\\test.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{7FE13062-CAB2-41F1-A73C-3E401DB33DCB}|test_0906\\test_0906.vcxproj|solutionrelative:test_0906\\test.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
@@ -19,12 +23,25 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "test in cpp.cpp",
+              "DocumentMoniker": "D:\\code\\test_0906\\test_0906\\test in cpp.cpp",
+              "RelativeDocumentMoniker": "test_0906\\test in cpp.cpp",
+              "ToolTip": "D:\\code\\test_0906\\test_0906\\test in cpp.cpp",
+              "RelativeToolTip": "test_0906\\test in cpp.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-09-28T03:49:35.316Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "test.c",
               "DocumentMoniker": "D:\\code\\test_0906\\test_0906\\test.c",
               "RelativeDocumentMoniker": "test_0906\\test.c",
-              "ToolTip": "D:\\code\\test_0906\\test_0906\\test.c",
-              "RelativeToolTip": "test_0906\\test.c",
-              "ViewState": "AgIAAB4BAAAAAAAAAADwvy8BAAALAAAAAAAAAA==",
+              "ToolTip": "D:\\code\\test_0906\\test_0906\\test.c*",
+              "RelativeToolTip": "test_0906\\test.c*",
+              "ViewState": "AgIAACcBAAAAAAAAAAAAwDIBAAADAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-09-08T13:54:27.409Z",
               "EditorCaption": ""
