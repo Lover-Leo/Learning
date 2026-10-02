@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "编译并运行当前 C/C++ 文件（MSVC）",
+            "name": "运行当前 C/C++ 文件（修正版）",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
@@ -11,7 +11,7 @@
             "cwd": "${fileDirname}",
             "environment": [],
             "console": "integratedTerminal",
-            "preLaunchTask": "生成当前 C/C++ 文件（MSVC）"
+            "preLaunchTask": "MSVC 构建当前文件（修正版）"
         }
     ]
 }
