@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="SOF103/SOF103.vcxproj" Id="8887d067-7601-4d3d-b03e-9aabf4752ea8" />
+</Solution>
