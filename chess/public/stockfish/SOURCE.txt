@@ -1,0 +1,5 @@
+Stockfish.js 19.0.0 (lite single-threaded WebAssembly build)
+Package: https://www.npmjs.com/package/stockfish/v/19.0.0
+Build source: https://github.com/nmrugg/stockfish.js/tree/v19.0.0
+Upstream engine: https://github.com/official-stockfish/Stockfish/tree/sf_19
+License: GNU General Public License v3; see COPYING.txt in this directory.

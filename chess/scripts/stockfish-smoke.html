@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en" data-result="pending" data-message="waiting">
+  <body>
+    <script type="module">
+      import { Chess } from 'chess.js'
+      import { assessMoveQuality } from '/src/analysis/moveQuality.ts'
+      import { parseInfoLine, scoreToWhitePerspective } from '/src/analysis/uciParsing.ts'
+
+      const root = document.documentElement
+      const engineUrl = '/stockfish/stockfish-19-lite-single.js'
+      const playWorker = new Worker(engineUrl)
+      const analysisWorker = new Worker(engineUrl)
+      const chess = new Chess()
+      let playReady = false
+      let analysisReady = false
+      let phase = 'initial'
+      let latest = null
+      let before = null
+      let assessedQuality = null
+      let ticks = 0
+      const heartbeat = setInterval(() => { ticks += 1 }, 20)
+
+      const cleanup = () => {
+        clearInterval(heartbeat)
+        playWorker.terminate()
+        analysisWorker.terminate()
+      }
+      const fail = (message) => {
+        root.dataset.result = 'failed'
+        root.dataset.message = String(message).replaceAll('"', '')
+        cleanup()
+      }
+      const maybeFinish = () => {
+        if (!playReady || !analysisReady) return
+        if (ticks < 3) return setTimeout(maybeFinish, 80)
+        root.dataset.result = 'passed'
+        root.dataset.message = 'ok'
+        root.dataset.bestmove = root.dataset.bestmove || 'unknown'
+        root.dataset.evaluation = String(before.score.value)
+        root.dataset.quality = assessedQuality
+        root.dataset.heartbeat = String(ticks)
+        cleanup()
+      }
+      const beginAnalysis = () => {
+        latest = null
+        analysisWorker.postMessage(`position fen ${chess.fen()}`)
+        analysisWorker.postMessage('go depth 8 movetime 400')
+      }
+
+      playWorker.onerror = (event) => fail(event.message || 'play worker error')
+      playWorker.onmessage = (event) => {
+        const line = String(event.data)
+        if (line === 'uciok') playWorker.postMessage('isready')
+        else if (line === 'readyok') {
+          playWorker.postMessage(`position fen ${chess.fen()}`)
+          playWorker.postMessage('go depth 3 movetime 200')
+        } else if (line.startsWith('bestmove ')) {
+          const uci = line.split(/\s+/)[1]
+          const validation = new Chess()
+          const match = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(uci)
+          try {
+            if (!match) throw new Error(`unparseable play move ${uci}`)
+            validation.move({ from: match[1], to: match[2], promotion: match[3] })
+            root.dataset.bestmove = uci
+            playReady = true
+            maybeFinish()
+          } catch (error) {
+            fail(error instanceof Error ? error.message : error)
+          }
+        }
+      }
+
+      analysisWorker.onerror = (event) => fail(event.message || 'analysis worker error')
+      analysisWorker.onmessage = (event) => {
+        const line = String(event.data)
+        if (line === 'uciok') analysisWorker.postMessage('isready')
+        else if (line === 'readyok') beginAnalysis()
+        else if (line.startsWith('info ')) {
+          const parsed = parseInfoLine(line)
+          if (parsed) {
+            latest = {
+              requestId: phase === 'initial' ? 1 : 2,
+              fen: chess.fen(),
+              score: scoreToWhitePerspective(parsed.score, chess.fen()),
+              depth: parsed.depth,
+              bestMove: parsed.bestMove,
+              pv: parsed.pv,
+              bound: parsed.bound,
+            }
+          }
+        } else if (line.startsWith('bestmove ')) {
+          if (!latest) return fail('analysis returned no valid score')
+          if (phase === 'initial') {
+            if (latest.score.type !== 'cp' || Math.abs(latest.score.value) > 300) {
+              return fail(`initial evaluation is not near equality: ${latest.score.type} ${latest.score.value}`)
+            }
+            before = latest
+            chess.move('e4')
+            const directionCheck = scoreToWhitePerspective({ type: 'cp', value: 50 }, chess.fen())
+            if (directionCheck.value !== -50) return fail('black-to-move score direction is wrong')
+            phase = 'after-e4'
+            beginAnalysis()
+          } else {
+            const assessment = assessMoveQuality(before, latest, 'w', 'e2e4')
+            if (!assessment?.quality) return fail('move quality was not produced')
+            assessedQuality = assessment.quality
+            analysisReady = true
+            maybeFinish()
+          }
+        }
+      }
+
+      playWorker.postMessage('uci')
+      analysisWorker.postMessage('uci')
+    </script>
+  </body>
+</html>

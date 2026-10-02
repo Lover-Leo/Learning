@@ -1,0 +1,3 @@
+allowBuilds:
+  # Engine assets are copied by our own audited script; dependency scripts stay disabled.
+  stockfish: false
