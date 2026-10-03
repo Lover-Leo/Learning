@@ -21,6 +21,8 @@ class book
         const std::string& getauther() const;
         borrowstatus getstatus() const; 
         void showinfo() const;
+        bool borrow();
+        bool returnbook();
 };
 book::book(const std::string& newtitle,const std::string& newid,const std::string& newauther):
 title(newtitle),id(newid),auther(newauther),status(borrowstatus::available)
@@ -38,6 +40,20 @@ const std::string& book::gettitle() const
 borrowstatus book::getstatus() const
 {
     return status;
+}
+bool book::borrow()
+{
+    if(status == borrowstatus::borrowed)
+    {
+        std::cout << "未能成功借阅该图书\n";
+        return false;
+    }
+    else
+    {
+        std::cout << "已成功借阅该图书";
+        status = borrowstatus::borrowed;
+        return true;
+    }
 }
 void book::showinfo() const
 {
@@ -70,7 +86,7 @@ void addbook(std::vector<book>& books)
     {
         if(newid == bo.getid())
         {
-            std::cout << "您的图书编号与其他图书编号重复";
+            std::cout << "您的图书编号与其他图书编号重复\n";
             return;
         }
     }
@@ -84,7 +100,7 @@ void showbook(const std::vector<book>& books)
 {
     if(books.empty())
     {
-        std::cout << "系统内没有添加图书";
+        std::cout << "系统内没有添加图书\n";
         return;
     }
     for(const auto& bo: books)
@@ -92,25 +108,86 @@ void showbook(const std::vector<book>& books)
         bo.showinfo();
     }
 }
-void findbook(const std::vector<book>& books)
+book* findbook(std::vector<book>& books,const std::string& targetid)
+{
+    for(auto& bo:books)
+    {
+        if(bo.getid() == targetid)
+        {
+            return &bo;
+        }
+    }
+    return nullptr;
+}
+void searchbook(std::vector<book>& books)
 {
     if(books.empty())
     {
-        std::cout << "系统内没有图书";
+        std::cout << "您的系统内没有图书\n";
         return;
     }
-    std::string newid;
-    std::getline(std::cin,newid);
-    for(const auto& bo:books)
+    std::string targetid;
+    std::cout << "请输入您要查找的图书编号:";
+    std::getline(std::cin >> std::ws,targetid);
+    const book* result = findbook(books,targetid);
+    if(result == nullptr)
     {
-        if (newid == bo.getid())
+        std::cout << "图书系统内没有该图书\n";
+        return;
+    }
+    else
+    {
+        result -> showinfo();
+    }
+}
+bool book::returnbook()
+{
+    if(status == borrowstatus::available)
+    {
+        std::cout << "该图书未借出\n";
+        return false;
+    }
+    else
+    {
+        std::cout << "已成功归还该图书\n";
+        status = borrowstatus::available;
+        return true;
+    }
+}
+void borrowbook(std::vector<book>& books)
+{
+    if(books.empty())
+    {
+        std::cout << "系统内没有图书\n";
+        return;
+    }
+    std::string targetid;
+    std::cout << "请输入图书编号:";
+    std::getline(std::cin >> std::ws,targetid);
+    bool result;
+    result = findbook(books,targetid);
+    if(result = true)
+    std::cout << "没有找到该图书\n";
+}
+void returning(std::vector<book>& books)
+{
+    if(books.empty())
+    {
+        std::cout << "系统内没有图书\n";
+        return;
+    }
+    std::string targetid;
+    std::cout << "请输入图书编号:";
+    std::getline(std::cin >> std::ws,targetid);
+    for(auto& bo:books)
+    {
+        if(bo.getid() == targetid)
         {
-            bo.showinfo();
+            bo.returnbook();
             return;
         }
-        
     }
-    std::cout << "系统内没有找到该图书";
+    std::cout << "系统中未能找到该编号\n";
 }
 int main()
 {
@@ -124,6 +201,8 @@ int main()
         std::cout << "1.添加图书\n";
         std::cout << "2.显示全部图书\n";
         std::cout << "3.根据编号查找图书\n";
+        std::cout << "4.根据编号借出图书\n";
+        std::cout << "5.根据编号归还图书\n";
         std::cout << "0.退出系统\n";
         std::cin >> choice;
         switch(choice)
@@ -135,13 +214,19 @@ int main()
                 showbook(books);
                 break;
             case 3:
-                findbook(books);
+                searchbook(books);
+                break;
+            case 4:
+                borrowbook(books);
+                break;
+            case 5:
+                returning(books);
                 break;
             case 0:
-                std::cout << "您已成功退出系统";
+                std::cout << "您已成功退出系统\n";
                 break;
             default:
-                std::cout << "无效输入";
+                std::cout << "无效输入\n";
                 break;
         }
     }while(choice != 0);
