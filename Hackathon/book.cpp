@@ -1,10 +1,5 @@
 #include <iostream>
-#include <string>
-#include <vector>
-#include <limits>
 #include "book.h"
-#define NOMINMAX
-#include <windows.h>
 book::book(const std::string& newtitle,const std::string& newid,const std::string& newauther):
 title(newtitle),id(newid),auther(newauther),status(borrowstatus::available)
 {
