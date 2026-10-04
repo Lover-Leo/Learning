@@ -5,11 +5,13 @@
 #include "book.h"
 #define NOMINMAX
 #include <windows.h>
+#include<fstream>
 void addbook(std::vector<book>& books)
 {
     std::string newid;
     std::string newtitle;
     std::string newauther;
+    borrowstatus newstatus = borrowstatus::available;
     std::cout << "编号:";
     std::getline(std::cin,newid);
     if(newid.empty())
@@ -39,7 +41,7 @@ void addbook(std::vector<book>& books)
         std::cout << "作者不能为空";
         return;
     }
-    books.emplace_back(newtitle,newid,newauther);
+    books.emplace_back(newtitle,newid,newauther,newstatus);
 }
 void showbook(const std::vector<book>& books)
 {
@@ -132,11 +134,63 @@ void returning(std::vector<book>& books)
         return;
     }
 }
+void savebook(const std::vector<book>& books)
+{
+    std::ofstream output("book.txt");
+    if(!output)
+    {
+        std::cout << "文件未正常打开";
+        return;
+    }
+    for(const auto& bo:books)
+    {
+        output << bo.getid() << '\n';
+        output << bo.gettitle() << '\n';
+        output << bo.getauther() <<'\n';
+        output << static_cast<int>(bo.getstatus()) << '\n';
+    }
+}
+void loadbook(std::vector<book>& books)
+{
+    std::ifstream input("book.txt");
+    std::string id;
+    std::string title;
+    std::string auther;
+    std::string statustext;
+    borrowstatus status;
+    while(getline(input,id))
+    {
+        if(
+            !getline(input,title)||
+            !getline(input,auther)||
+            !getline(input,statustext)
+        )
+        {
+            std::cout << "图书信息不完整\n";
+            return;
+        }
+        if(statustext == "0")
+        {
+            status = borrowstatus::available;
+        }
+        else if(statustext == "1")
+        {
+            status = borrowstatus::borrowed;
+        }
+        else
+        {
+            std::cout << "借阅状态无效\n";
+            continue;
+        }
+        books.emplace_back(title,id,auther,status);
+    }
+}
 int main()
 {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
     std::vector<book> books;
+    loadbook(books);
     int choice = -1;
     do
     {
@@ -181,6 +235,7 @@ int main()
                 break;
             case 0:
                 std::cout << "您已成功退出系统\n";
+                savebook(books);
                 break;
             default:
                 std::cout << "无效输入\n";

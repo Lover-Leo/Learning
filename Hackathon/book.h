@@ -2,8 +2,8 @@
 #include<string>
 enum class borrowstatus
 {
-    available,
-    borrowed
+    available = 0,
+    borrowed = 1
 };
 class book
 {
@@ -13,7 +13,11 @@ class book
         std::string auther;
         borrowstatus status;
     public:
-        book(const std::string& newtitle,const std::string& newid,const std::string& newauther);
+        book(
+            const std::string& newtitle,
+            const std::string& newid,
+            const std::string& newauther,
+            borrowstatus newstatus);
         const std::string& getid() const;
         const std::string& gettitle() const;
         const std::string& getauther() const;

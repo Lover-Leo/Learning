@@ -1,7 +1,12 @@
 #include <iostream>
 #include "book.h"
-book::book(const std::string& newtitle,const std::string& newid,const std::string& newauther):
-title(newtitle),id(newid),auther(newauther),status(borrowstatus::available)
+book::book(
+    const std::string& newtitle,
+    const std::string& newid,
+    const std::string& newauther,
+    borrowstatus newstatus
+):
+title(newtitle),id(newid),auther(newauther),status(newstatus)
 {
 
 }
