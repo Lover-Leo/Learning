@@ -1,7 +1,10 @@
-#include<iostream>
-#include<string>
-#include<vector>
-#include<windows.h>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <limits>
+
+#define NOMINMAX
+#include <windows.h>
 enum class borrowstatus
 {
     available,
@@ -81,8 +84,13 @@ void addbook(std::vector<book>& books)
     std::string newtitle;
     std::string newauther;
     std::cout << "编号:";
-    std::getline(std::cin >> std::ws,newid);
-    for(const auto& bo: books)
+    std::getline(std::cin,newid);
+    if(newid.empty())
+    {
+        std::cout << "图书编号不能为空";
+        return;
+    }
+    for(const auto& bo:books)
     {
         if(newid == bo.getid())
         {
@@ -92,8 +100,18 @@ void addbook(std::vector<book>& books)
     }
     std::cout << "书名:";
     std::getline(std::cin,newtitle);
+    if(newtitle.empty())
+    {
+        std::cout << "书名不能为空";
+        return;
+    }
     std::cout << "作者:";
     std::getline(std::cin,newauther);
+    if(newauther.empty())
+    {
+        std::cout << "作者不能为空";
+        return;
+    }
     books.emplace_back(newtitle,newid,newauther);
 }
 void showbook(const std::vector<book>& books)
@@ -128,7 +146,7 @@ void searchbook(std::vector<book>& books)
     }
     std::string targetid;
     std::cout << "请输入您要查找的图书编号:";
-    std::getline(std::cin >> std::ws,targetid);
+    std::getline(std::cin,targetid);
     const book* result = findbook(books,targetid);
     if(result == nullptr)
     {
@@ -163,11 +181,20 @@ void borrowbook(std::vector<book>& books)
     }
     std::string targetid;
     std::cout << "请输入图书编号:";
-    std::getline(std::cin >> std::ws,targetid);
-    bool result;
+    std::getline(std::cin,targetid);
+    book* result;
     result = findbook(books,targetid);
-    if(result = true)
-    std::cout << "没有找到该图书\n";
+    if(result == nullptr)
+    {
+        std::cout << "没有找到该图书\n";
+        return;
+    }
+    else
+    {
+        result -> borrow();
+        return;
+    }
+
 }
 void returning(std::vector<book>& books)
 {
@@ -178,23 +205,25 @@ void returning(std::vector<book>& books)
     }
     std::string targetid;
     std::cout << "请输入图书编号:";
-    std::getline(std::cin >> std::ws,targetid);
-    for(auto& bo:books)
+    std::getline(std::cin,targetid);
+    book* result = findbook(books,targetid);
+    if(result == nullptr)
     {
-        if(bo.getid() == targetid)
-        {
-            bo.returnbook();
-            return;
-        }
+        std::cout << "未能找到该图书\n";
+        return;
     }
-    std::cout << "系统中未能找到该编号\n";
+    else
+    {
+        result -> returnbook();
+        return;
+    }
 }
 int main()
 {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
     std::vector<book> books;
-    int choice;
+    int choice = -1;
     do
     {
         std::cout << "====图书馆管理系统====\n";
@@ -204,7 +233,21 @@ int main()
         std::cout << "4.根据编号借出图书\n";
         std::cout << "5.根据编号归还图书\n";
         std::cout << "0.退出系统\n";
-        std::cin >> choice;
+        if(!(std::cin >> choice))
+        {
+            std::cin.clear();
+            std::cin.ignore(
+                std::numeric_limits<std::streamsize>::max(),
+                '\n'
+            );
+            std::cout << "请输入正确的选择\n";
+            choice = -1;
+            continue;
+        }
+        std::cin.ignore(
+            std::numeric_limits<std::streamsize>::max(),
+            '\n'
+        );
         switch(choice)
         {
             case 1:
