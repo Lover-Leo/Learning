@@ -22,6 +22,24 @@
                 "isDefault": true
             },
             "detail": "使用 Visual Studio 2026 MSVC 构建当前 C/C++ 文件。"
+        },
+        {
+            "type": "process",
+            "label": "MSVC 构建图书管理系统",
+            "command": "cmd.exe",
+            "args": [
+                "/d",
+                "/c",
+                "call \"D:\\VS2026\\Common7\\Tools\\VsDevCmd.bat\" -arch=x64 >nul && cl /nologo /W4 /utf-8 /EHsc /std:c++20 \"${workspaceFolder}\\Hackathon\\bookManager.cpp\" \"${workspaceFolder}\\Hackathon\\book.cpp\" /Fe:\"${workspaceFolder}\\Hackathon\\bookManager.exe\""
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}\\Hackathon"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": "build",
+            "detail": "同时编译并链接图书管理系统的两个源文件。"
         }
     ],
     "version": "2.0.0"
