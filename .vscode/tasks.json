@@ -31,10 +31,10 @@
                 "/d",
                 "/c",
                 "call",
-                "${workspaceFolder}\\Hackathon\\build.cmd"
+                "${workspaceFolder}\\bookManagement_Learning\\build.cmd"
             ],
             "options": {
-                "cwd": "${workspaceFolder}\\Hackathon"
+                "cwd": "${workspaceFolder}\\bookManagement_Learning"
             },
             "problemMatcher": [
                 "$msCompile"

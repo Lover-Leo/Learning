@@ -5,10 +5,10 @@
             "name": "运行图书管理系统",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\Hackathon\\bookManager.exe",
+            "program": "${workspaceFolder}\\bookManagement_Learning\\bookManager.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}\\Hackathon",
+            "cwd": "${workspaceFolder}\\bookManagement_Learning",
             "environment": [],
             "console": "integratedTerminal",
             "preLaunchTask": "MSVC 构建图书管理系统"
