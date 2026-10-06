@@ -1,18 +1,22 @@
 {
+    "version": "2.0.0",
     "tasks": [
         {
             "type": "shell",
-            "label": "MSVC 构建当前文件（修正版）",
-            "command": "cmd.exe",
+            "label": "MSVC 构建当前 C/C++ 文件",
+            "command": "D:\\C_CPP_Tools\\build.cmd",
             "args": [
-                "/d",
-                "/c",
-                "call",
-                "D:\\C_CPP_Tools\\build.cmd",
                 "${file}"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${fileDirname}",
+                "shell": {
+                    "executable": "C:\\Windows\\System32\\cmd.exe",
+                    "args": [
+                        "/d",
+                        "/c"
+                    ]
+                }
             },
             "problemMatcher": [
                 "$msCompile"
@@ -21,27 +25,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "使用 Visual Studio 2026 MSVC 构建当前 C/C++ 文件。"
-        },
-        {
-            "type": "shell",
-            "label": "MSVC 构建图书管理系统",
-            "command": "cmd.exe",
-            "args": [
-                "/d",
-                "/c",
-                "call",
-                "${workspaceFolder}\\bookManagement_Learning\\build.cmd"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}\\bookManagement_Learning"
-            },
-            "problemMatcher": [
-                "$msCompile"
-            ],
-            "group": "build",
-            "detail": "同时编译并链接图书管理系统的两个源文件。"
+            "detail": "使用 MSVC 编译当前打开的单文件 C 或 C++ 程序。"
         }
-    ],
-    "version": "2.0.0"
+    ]
 }

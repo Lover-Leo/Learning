@@ -288,6 +288,7 @@ int main()
         std::cout << "6.根据书名排序\n";
         std::cout << "7.根据图书编号排序\n";
         std::cout << "8.统计所有图书\n";
+        std::cout << "9.删除图书\n";
         std::cout << "0.退出系统\n";
         if(!(std::cin >> choice))
         {
