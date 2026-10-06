@@ -36,6 +36,12 @@ class film
         void showseat() const;
         bool isseatvalid(int row,int column) const;
         bool sellseat(int row,int column);
+        bool refundseat(int row,int column);
+        int getsoldcount() const;
+        int gettotalcount() const;
+        int getremainingcount() const;
+        float getevenue() const;
+        float getoccupancyrate() const;
 };
 film::film(
     const int newid,
@@ -128,6 +134,56 @@ bool film::sellseat(int row,int column)
     else
         return false;
 }
+bool film::refundseat(int row,int column)
+{
+    if(isseatvalid(row,column))
+    {
+        if(seat[row][column] == seatstatus::availble)
+            return false;
+        else
+        {
+            seat[row][column] = seatstatus::availble;
+            return true;
+        }
+    }
+    else
+        return false;
+}
+int film::getsoldcount() const
+{
+    int soldcount = 0;
+    for(int row = 0;row < seat.size();row++)
+    {
+        for(int column = 0;column < seat[row].size();column++)
+        {
+            if(seat[row][column] == seatstatus::sold)
+            {
+                soldcount += 1;
+            }
+        }
+    }
+    return soldcount;
+}
+int film::gettotalcount() const
+{
+    int total = 0;
+    for(int row = 0;row < seat.size();row++)
+    {
+        for(int column = 0;column < seat[row].size();column++)
+        {
+            total += 1;
+        }
+    }
+    return total;
+}
+int film::getremainingcount() const
+{
+    return (gettotalcount() - getsoldcount());
+}
+float film::getevenue() const
+{
+    return (price * getsoldcount());
+}
 void showallfilm(const std::vector<film>& films)
 {
     if(films.empty())
@@ -179,6 +235,43 @@ void sellingbyid(std::vector<film>& films)
         return;
     }
 }
+void refundingbyid(std::vector<film>& films)
+{
+    int newid;
+    int row;
+    int column;
+    std::cout << "请输入退票的场次编号:";
+    std::cin >> newid;
+    film* target = findfilm(films,newid);
+    std::cout << "请输入几排:";
+    std::cin >> row;
+    std::cout << "请输入几列:";
+    std::cin >> column;
+    if(target == nullptr)
+    {
+        std::cout << "没有找到该场次\n";
+        return;
+    }
+    if(target->refundseat(row-1,column-1))
+    {
+        std::cout << "退票成功\n";
+        return;
+    }
+    else
+    {
+        std::cout << "退票失败\n";
+        return;
+    }
+}
+float film::getoccupancyrate() const
+{
+    int total = gettotalcount();
+
+if (total == 0)
+    return 0.0;
+
+    return static_cast<double>(getsoldcount()) / total * 100;
+}
 int main()
 {
     std::vector<std::vector<int>> newseat(5,std::vector<int> (8,seatstatus::availble));
@@ -190,6 +283,7 @@ int main()
         std::cout << "====电影购票====\n";
         std::cout << "1.显示所有场次信息\n";
         std::cout << "2.根据场次编号进行购票\n";
+        std::cout << "3.根据场次编号进行退票\n";
         std::cout << "0.退出系统\n";
         if(!(std::cin >> choice))
         {
@@ -208,6 +302,9 @@ int main()
             break;
         case 2:
             sellingbyid(films);
+            break;
+        case 3:
+            refundingbyid(films);
             break;
         case 0:
             std::cout << "成功退出系统\n";
