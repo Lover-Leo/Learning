@@ -1,189 +1,8 @@
 #include<iostream>
-#include<string>
-#include<vector>
 #include<limits>
 #include<fstream>
-enum seatstatus
-{
-    availble = 0,
-    sold = 1
-};
-class film
-{
-    private:
-        int id;
-        std::string name;
-        std::string time;
-        std::string cinemaname;
-        float price;
-        std::vector<std::vector<int>> seat;
-
-    public:
-        film(
-            const int newid,
-            const std::string& newname,
-            const std::string& newtime,
-            const std::string& newcinemaname,
-            float newprice,
-            const std::vector<std::vector<int>>& newseat
-        );
-        int getid() const;
-        const std::string& getname() const;
-        const std::string& gettime() const;
-        const std::string& getcinemaname() const;
-        float getprice() const;
-        void showinfo() const;
-        void showseat() const;
-        bool isseatvalid(int row,int column) const;
-        bool sellseat(int row,int column);
-        bool refundseat(int row,int column);
-        int getsoldcount() const;
-        int gettotalcount() const;
-        int getremainingcount() const;
-        float getevenue() const;
-        float getoccupancyrate() const;
-};
-film::film(
-    const int newid,
-    const std::string& newname,
-    const std::string& newtime,
-    const std::string& newcinemaname,
-    float newprice,
-    const std::vector<std::vector<int>>& newseat
-):id(newid),name(newname),time(newtime),cinemaname(newcinemaname),price(newprice),seat(newseat)
-{
-};
-int film::getid() const
-{
-    return id;
-}
-const std::string& film::getname() const
-{
-    return name;
-}
-const std::string& film::gettime() const
-{
-    return time;
-}
-const std::string& film::getcinemaname() const
-{
-    return cinemaname;
-}
-float film::getprice() const
-{
-    return price;
-}
-void film::showinfo() const
-{
-    std::cout << "场次编号:" << id << '\n';
-    std::cout << "电影名称:" << name <<'\n';
-    std::cout << "放映时间:" << time <<'\n';
-    std::cout << "票价:" << price << '\n';
-    std::cout << "影院名称:" << cinemaname << '\n';
-    std::cout << "当前座位:\n";
-    showseat();
-}
-void film::showseat() const
-{
-    int row = 0;
-    int column = 0;
-    for(row = 0;row < seat.size();row++)
-    {
-        for(column = 0;column < seat[row].size();column++)
-        {
-            if(seat[row][column] == seatstatus::availble)
-            {
-                std::cout << 'O';
-            }
-            else
-            {
-                std::cout << 'X';
-            }
-        }
-        std::cout << '\n';
-    }
-}
-bool film::isseatvalid(int row,int column) const
-{
-    if(row < 0 || 
-        row >= seat.size() || 
-        column < 0 ||
-        column >= seat[0].size()
-    )
-    {
-        std::cout << "该座位不合法\n";
-        return false;
-    }
-    else
-        return true;
-}
-bool film::sellseat(int row,int column)
-{
-    if(isseatvalid(row,column))
-    {
-        if(seat[row][column] == seatstatus::sold)
-        {
-            return false;
-        }
-        else
-        {
-            seat[row][column] = seatstatus::sold;
-            return true;
-        }
-    }
-    else
-        return false;
-}
-bool film::refundseat(int row,int column)
-{
-    if(isseatvalid(row,column))
-    {
-        if(seat[row][column] == seatstatus::availble)
-            return false;
-        else
-        {
-            seat[row][column] = seatstatus::availble;
-            return true;
-        }
-    }
-    else
-        return false;
-}
-int film::getsoldcount() const
-{
-    int soldcount = 0;
-    for(int row = 0;row < seat.size();row++)
-    {
-        for(int column = 0;column < seat[row].size();column++)
-        {
-            if(seat[row][column] == seatstatus::sold)
-            {
-                soldcount += 1;
-            }
-        }
-    }
-    return soldcount;
-}
-int film::gettotalcount() const
-{
-    int total = 0;
-    for(int row = 0;row < seat.size();row++)
-    {
-        for(int column = 0;column < seat[row].size();column++)
-        {
-            total += 1;
-        }
-    }
-    return total;
-}
-int film::getremainingcount() const
-{
-    return (gettotalcount() - getsoldcount());
-}
-float film::getevenue() const
-{
-    return (price * getsoldcount());
-}
+#include"cinema.h"
+#include"ticket.h"
 void showallfilm(const std::vector<film>& films)
 {
     if(films.empty())
@@ -207,7 +26,18 @@ film* findfilm(std::vector<film>& films,int newid)
     }
         return nullptr;
 }
-void sellingbyid(std::vector<film>& films)
+ticket* findticket(std::vector<ticket>& tickets,int newid)
+{
+    for(auto& ti:tickets)
+    {
+        if(ti.getid() == newid)
+        {
+            return &ti;
+        }
+    }
+        return nullptr;
+}
+void sellingbyid(std::vector<film>& films,std::vector<ticket>& tickets)
 {
     int newid;
     int row;
@@ -217,15 +47,24 @@ void sellingbyid(std::vector<film>& films)
     film* target = findfilm(films,newid);
     std::cout << "请输入几排:";
     std::cin >> row;
+    int rowindex = row -1;
     std::cout << "请输入几座:";
     std::cin >> column;
+    int columnindex = column - 1;
+    std::cout << "请输入您的名字:";
+    std::string buyername;
+    std::getline(std::cin >> std::ws,buyername);
     if(target == nullptr)
     {
         std::cout << "没有找到该座位\n";
         return;
     }
-    if(target->sellseat(row-1,column-1))
+    if(target->sellseat(rowindex,columnindex))
     {
+        tickets.emplace_back((tickets.size() + 1),
+        buyername,
+        target->getid(),
+        row,column,target->getprice(),ticketstatus::valid);
         std::cout << "购票成功\n";
         return;
     }
@@ -235,25 +74,34 @@ void sellingbyid(std::vector<film>& films)
         return;
     }
 }
-void refundingbyid(std::vector<film>& films)
+void refundingbyid(std::vector<film>& films,std::vector<ticket>& tickets)
 {
     int newid;
     int row;
     int column;
-    std::cout << "请输入退票的场次编号:";
+    std::cout << "请输入退票的电影票编号:";
     std::cin >> newid;
-    film* target = findfilm(films,newid);
-    std::cout << "请输入几排:";
-    std::cin >> row;
-    std::cout << "请输入几列:";
-    std::cin >> column;
+    ticket* target = findticket(tickets,newid);
     if(target == nullptr)
     {
-        std::cout << "没有找到该场次\n";
+        std::cout << "没有找到该电影票\n";
         return;
     }
-    if(target->refundseat(row-1,column-1))
+    if (target->getstatus() != ticketstatus::valid)
     {
+        std::cout << "该电影票已经退过\n";
+        return;
+    }
+    if(target->fundticket())
+    {
+        film* targetfilm = findfilm(films,target->getfilmid());
+        int newrow = target->getseatrow();
+        int newcolumn = target->getseatcolumn();
+        if(!(targetfilm->refundseat(newrow,newcolumn)))
+        {
+            std::cout << "退票失败\n";
+            return;
+        }
         std::cout << "退票成功\n";
         return;
     }
@@ -263,19 +111,148 @@ void refundingbyid(std::vector<film>& films)
         return;
     }
 }
-float film::getoccupancyrate() const
+void showticket(std::vector<ticket>& tickets)
 {
-    int total = gettotalcount();
-
-if (total == 0)
-    return 0.0;
-
-    return static_cast<double>(getsoldcount()) / total * 100;
+    int newid;
+    std::cout << "请输入电影票编号:";
+    std::cin >> newid;
+    ticket* target = findticket(tickets,newid);
+    if(target == nullptr)
+    {
+        std::cout << "找不到该电影票\n";
+        return;
+    }
+    else
+        target->showinfo();
+}
+void savedata(const std::vector<film>& films,const std::vector<ticket>& tickets)
+{
+    std::ofstream outputfilms("film.txt");
+    std::ofstream outputtickets("ticket.txt");
+    if(!outputfilms || !outputtickets)
+    {
+        std::cout << "文件未能正常打开\n";
+        return;
+    }
+    for(const auto& fi:films)
+    {
+        outputfilms << fi.getid() << '\n';
+        outputfilms << fi.getname() << '\n';
+        outputfilms << fi.gettime() << '\n';
+        outputfilms << fi.getcinemaname() << '\n';
+        outputfilms << fi.getprice() << '\n';
+    }
+    for (const auto& ti:tickets)
+    {
+        outputtickets << ti.getid() << '|';
+        outputtickets << ti.getname() << '|';
+        outputtickets << ti.getfilmid() << '|';
+        outputtickets << ti.getseatrow() << '|';
+        outputtickets << ti.getseatcolumn() << '|';
+        outputtickets << ti.getprice() << '|';
+        outputtickets << static_cast<int>(ti.getstatus()) << '\n';
+    }
+    
+}
+void loaddata(std::vector<film>& films,std::vector<ticket>& tickets)
+{
+    int filmid;
+    std::string filmname;
+    std::string filmtime;
+    std::string cinemaname;
+    int filmprice;
+    std::vector<std::vector<int>> newseat(5,std::vector<int> (8,seatstatus::availble));
+    int ticketid;
+    std::string ticketname;
+    int ticketfilmid;
+    int seatrow;
+    int seatcolumn;
+    int ticketprice;
+    std::string statustext;
+    ticketstatus status;
+    std::ifstream inputfilms("film.txt");
+    std::ifstream inputtickets("ticket.txt");
+    while(inputfilms >> filmid)
+    {
+        if(!(std::getline(inputfilms,filmname))
+            ||!(std::getline(inputfilms,filmtime))
+            ||!(std::getline(inputfilms,cinemaname))
+            ||!(inputfilms >> filmprice)
+        )
+        {
+            std::cout << "电影信息不完整\n";
+            return;
+        }
+         films.emplace_back(filmid,filmname,filmtime,cinemaname,filmprice,newseat);
+    }
+    while(inputtickets >> ticketid)
+    {
+        if(!(std::getline(inputtickets,ticketname))
+            || !(inputtickets >> ticketfilmid)
+            || !(inputtickets >> seatrow)
+            || !(inputtickets >> seatcolumn)
+            || !(inputtickets >> ticketprice)
+            || !(std::getline(inputtickets,statustext))
+        )
+        {
+            std::cout << "电影票信息不完整\n";
+            return;
+        }
+        if(statustext == "0")
+        {
+            status = ticketstatus::valid;
+        }
+        else
+        {
+            status = ticketstatus::funded;
+        }
+        tickets.emplace_back(ticketid,ticketname,ticketfilmid,seatrow,seatcolumn,ticketprice,status);
+    }
+}
+void resortstatus(std::vector<film>& films,std::vector<ticket>& tickets)
+{
+    for(auto& ti: tickets)
+    {
+        if(ti.getstatus() == ticketstatus::valid)
+        {
+            int newrow = ti.getseatrow();
+            int newcolumn = ti.getseatcolumn();
+            int filmid = ti.getfilmid();
+            for(auto& fi:films)
+            {
+                if(fi.getid() == filmid)
+                {
+                    fi.sellseat(newrow,newcolumn);
+                }
+            }
+        }
+    }
+}
+void showstatistics(std::vector<film>& films)
+{
+    std::cout << "请输入要查询的场次id:";
+    int newid = 0;
+    std::cin >> newid;
+    film* target = findfilm(films,newid);
+    if(target == nullptr)
+    {
+        std::cout << "没有找到该场次\n";
+        return;
+    }
+    std::cout << "该场次的营业额如下:\n";
+    std::cout << "总座位数:" << target->gettotalcount() << '\n';
+    std::cout << "已售:" << target->getsoldcount() << '\n';
+    std::cout << "剩余:" <<target->getremainingcount() << '\n';
+    std::cout << "上座率:" << target->getoccupancyrate() << '\n';
+    std::cout << "收入:" << target->getevenue() << '\n';
 }
 int main()
 {
     std::vector<std::vector<int>> newseat(5,std::vector<int> (8,seatstatus::availble));
     std::vector<film> films;
+    std::vector<ticket> tickets;
+    loaddata(films,tickets);
+    resortstatus(films,tickets);
     films.emplace_back(1,"生活","11:45","XMUM",14.0f,newseat);
     int choice = -1;
     do
@@ -284,6 +261,8 @@ int main()
         std::cout << "1.显示所有场次信息\n";
         std::cout << "2.根据场次编号进行购票\n";
         std::cout << "3.根据场次编号进行退票\n";
+        std::cout << "4.根据场次编号查询营业额\n";
+        std::cout << "5.根据电影票编号查询电影票\n";
         std::cout << "0.退出系统\n";
         if(!(std::cin >> choice))
         {
@@ -301,13 +280,20 @@ int main()
             showallfilm(films);
             break;
         case 2:
-            sellingbyid(films);
+            sellingbyid(films,tickets);
             break;
         case 3:
-            refundingbyid(films);
+            refundingbyid(films,tickets);
+            break;
+        case 4:
+            showstatistics(films);
+            break;
+        case 5:
+            showticket(tickets);
             break;
         case 0:
             std::cout << "成功退出系统\n";
+            savedata(films,tickets);
             break;
         default:
             std::cout << "输入的数字无效\n";
