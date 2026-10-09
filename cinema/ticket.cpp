@@ -62,8 +62,8 @@ void ticket::showinfo() const
     std::cout << "电影票编号:" << getid() << '\n';
     std::cout << "购票人:" << getname() << '\n';
     std::cout << "场次编号:" << getfilmid() << '\n';
-    std::cout << "所在行数:" << getseatrow() << '\n';
-    std::cout << "所在列数:" << getseatcolumn() << '\n';
+    std::cout << "所在行数:" << getseatrow() + 1 << '\n';
+    std::cout << "所在列数:" << getseatcolumn() + 1 << '\n';
     std::cout << "票价:" << getprice() << '\n';
     std::cout << "是否退款:";
     if(status == ticketstatus::funded)

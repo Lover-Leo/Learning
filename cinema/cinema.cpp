@@ -61,10 +61,15 @@ void sellingbyid(std::vector<film>& films,std::vector<ticket>& tickets)
     }
     if(target->sellseat(rowindex,columnindex))
     {
-        tickets.emplace_back((tickets.size() + 1),
-        buyername,
-        target->getid(),
-        row,column,target->getprice(),ticketstatus::valid);
+        tickets.emplace_back(
+            (tickets.size() + 1),
+            buyername,
+            target->getid(),
+            rowindex,
+            columnindex,
+            target->getprice(),
+            ticketstatus::valid
+        );
         std::cout << "购票成功\n";
         return;
     }
@@ -77,8 +82,6 @@ void sellingbyid(std::vector<film>& films,std::vector<ticket>& tickets)
 void refundingbyid(std::vector<film>& films,std::vector<ticket>& tickets)
 {
     int newid;
-    int row;
-    int column;
     std::cout << "请输入退票的电影票编号:";
     std::cin >> newid;
     ticket* target = findticket(tickets,newid);
@@ -92,24 +95,19 @@ void refundingbyid(std::vector<film>& films,std::vector<ticket>& tickets)
         std::cout << "该电影票已经退过\n";
         return;
     }
-    if(target->fundticket())
+    film* targetfilm = findfilm(films,newid);
+    if(targetfilm == nullptr)
     {
-        film* targetfilm = findfilm(films,target->getfilmid());
-        int newrow = target->getseatrow();
-        int newcolumn = target->getseatcolumn();
-        if(!(targetfilm->refundseat(newrow,newcolumn)))
-        {
-            std::cout << "退票失败\n";
-            return;
-        }
-        std::cout << "退票成功\n";
+        std::cout << "该电影场次不存在\n";
         return;
-    }
-    else
+    } 
+    if(!(targetfilm->refundseat(target->getseatrow(),target->getseatcolumn())))
     {
         std::cout << "退票失败\n";
         return;
     }
+    target->fundticket();
+    std::cout << "退票成功\n";
 }
 void showticket(std::vector<ticket>& tickets)
 {
